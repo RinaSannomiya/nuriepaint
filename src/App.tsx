@@ -269,6 +269,7 @@ function App() {
   const [galleryGroupMode, setGalleryGroupMode] = useState<GalleryGroupMode>('all')
   const [gallerySortBasis, setGallerySortBasis] = useState<GallerySortBasis>('created')
   const [gallerySortDirection, setGallerySortDirection] = useState<SortDirection>('desc')
+  const [galleryPublishFilter, setGalleryPublishFilter] = useState<'all' | 'public' | 'private'>('all')
   const [activeGalleryCategoryId, setActiveGalleryCategoryId] = useState<string | null>(null)
   const [savedColorings, setSavedColorings] = useState<SavedColoring[]>([])
   const [publicColorings, setPublicColorings] = useState<PublicColoring[]>([])
@@ -498,18 +499,22 @@ function App() {
       return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
     }
 
+    const filteredColorings = galleryPublishFilter === 'all'
+      ? savedColorings
+      : savedColorings.filter((item) => (galleryPublishFilter === 'public' ? Boolean(item.isPublic) : !item.isPublic))
+
     if (galleryGroupMode === 'all') {
       return [
         {
           id: 'all',
           title: 'すべて',
-          items: [...savedColorings].sort(itemSorter),
+          items: [...filteredColorings].sort(itemSorter),
         },
       ]
     }
 
     const categorySections = ILLUSTRATION_CATEGORIES.map((category) => {
-      const items = savedColorings
+      const items = filteredColorings
         .filter((item) => category.illustrationIds.includes(item.illustrationId))
         .sort(itemSorter)
       return { id: category.id, title: category.title, items }
@@ -517,12 +522,17 @@ function App() {
       .filter((section) => section.items.length > 0)
       .sort((left, right) => (categoryOrderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (categoryOrderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER))
 
-    const unknownItems = savedColorings
+    const unknownItems = filteredColorings
       .filter((item) => !ILLUSTRATION_CATEGORIES.some((category) => category.illustrationIds.includes(item.illustrationId)))
       .sort(itemSorter)
 
     return unknownItems.length ? [...categorySections, { id: 'unknown', title: 'その他', items: unknownItems }] : categorySections
-  }, [galleryGroupMode, gallerySortBasis, gallerySortDirection, savedColorings])
+  }, [galleryGroupMode, galleryPublishFilter, gallerySortBasis, gallerySortDirection, savedColorings])
+
+  const savedGalleryTotalCount = useMemo(
+    () => savedGallerySections.reduce((sum, section) => sum + section.items.length, 0),
+    [savedGallerySections],
+  )
 
   const activeGallerySection = useMemo(() => {
     if (galleryGroupMode !== 'category') return savedGallerySections[0] ?? null
@@ -1616,6 +1626,19 @@ function App() {
             {gallerySortDirection === 'asc' ? '↑' : '↓'}
           </button>
         </div>
+        <div className="galleryControlGroup" role="group" aria-label="公開状態で絞り込み">
+          <span className="galleryControlLabel">公開</span>
+          <button className={`segmentButton ${galleryPublishFilter === 'all' ? 'activeSegment' : ''}`} type="button" onClick={() => setGalleryPublishFilter('all')}>
+            すべて
+          </button>
+          <button className={`segmentButton ${galleryPublishFilter === 'public' ? 'activeSegment' : ''}`} type="button" onClick={() => setGalleryPublishFilter('public')}>
+            公開中
+          </button>
+          <button className={`segmentButton ${galleryPublishFilter === 'private' ? 'activeSegment' : ''}`} type="button" onClick={() => setGalleryPublishFilter('private')}>
+            非公開
+          </button>
+        </div>
+        <span className="galleryTotalCount">{savedGalleryTotalCount}件</span>
       </div>
     )
   }
