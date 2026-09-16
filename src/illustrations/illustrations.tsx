@@ -311,6 +311,7 @@ const PLANT_ILLUSTRATIONS: IllustrationDef[] = PLANT_DATA.map((item) => ({
       {...props}
       title={item.title}
       source={`/lineart/plants/plant-${item.page}.png`}
+      allowEdgeFill
     />
   ),
 }))
