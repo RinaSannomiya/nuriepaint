@@ -1169,13 +1169,13 @@
   min-width: 260px;
   min-height: 66px;
   padding: 18px 40px;
-  background: var(--accent-green);
-  color: var(--accent-yellow);
-  font-size: 24px;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: 18px;
 }
 
 .lpImaginationButton:hover {
-  background: var(--accent-green-dark);
+  background: var(--accent-green);
   color: var(--accent-yellow);
 }
 
@@ -4702,7 +4702,7 @@
     scroll-padding-bottom: 28px;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y;
+    touch-action: none;
   }
 
   .app:has(.paletteDock) .paper {
@@ -4729,7 +4729,7 @@
   .inkSvg,
   .rasterCanvas {
     width: min(calc(100% * var(--art-zoom)), calc(560px * var(--art-zoom)));
-    touch-action: pan-y;
+    touch-action: none;
   }
 
   .app:has(.paletteDock) .inkSvg,
