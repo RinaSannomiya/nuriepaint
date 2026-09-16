@@ -31,6 +31,7 @@ export type IllustrationDef = {
     command?: RasterPaintCommand | null
     onTwoFingerTap?: () => void
     eyedropper?: boolean
+    brush?: boolean
     onPickColor?: (color: string) => void
     restoreImage?: { url: string; seq: number } | null
   }) => ReactNode
