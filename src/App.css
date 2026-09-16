@@ -1168,7 +1168,7 @@
   min-height: 66px;
   padding: 18px 40px;
   color: #29a2de;
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .lpFlyingButterfly {
@@ -1370,23 +1370,6 @@
   color: var(--muted);
   font-size: 15px;
   line-height: 1.8;
-}
-
-.lpAccountBenefitAddButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 16px;
-  min-height: 46px;
-  padding: 10px 22px;
-  background: var(--accent-blue);
-  color: #fff;
-  font-size: 15px;
-}
-
-.lpAccountBenefitAddButton:hover {
-  background: var(--accent-blue-dark);
-  color: #fff;
 }
 
 .lpAccountCreateButton {
@@ -5211,9 +5194,9 @@
 
   .lpImaginationButton {
     min-width: 0;
-    width: min(100%, 300px);
-    min-height: 58px;
-    font-size: 17px;
+    width: 80%;
+    min-height: 54px;
+    font-size: 16px;
   }
 
   .lpAccountSection {
@@ -5243,7 +5226,9 @@
 
   .lpAccountCreateButton {
     width: 80%;
+    min-height: 54px;
     margin-top: 24px;
+    font-size: 16px;
   }
 
   .lpSubSection {
