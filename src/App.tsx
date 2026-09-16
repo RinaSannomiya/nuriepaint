@@ -402,8 +402,9 @@ function App() {
       .filter((it): it is IllustrationDef => Boolean(it))
   }, [])
   const lpTryRandomIllustration = useMemo(() => {
-    if (!ILLUSTRATIONS.length) return null
-    return ILLUSTRATIONS[Math.floor(Math.random() * ILLUSTRATIONS.length)]
+    const candidates = ILLUSTRATIONS.filter((it) => Boolean(it.thumbnailImage))
+    if (!candidates.length) return null
+    return candidates[Math.floor(Math.random() * candidates.length)]
   }, [])
 
   const fills = selected ? state.fillsByIllustration[selected] ?? {} : {}
