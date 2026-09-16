@@ -1157,10 +1157,10 @@
 }
 
 .lpTryPreviewPaper {
-  width: 672px;
-  height: 672px;
+  width: 336px;
+  height: 336px;
   max-width: calc(100% - 40px);
-  border: 5px solid var(--accent-green);
+  border: 0;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -5189,10 +5189,10 @@
   }
 
   .lpTryPreviewPaper {
-    width: 528px;
-    height: 528px;
+    width: 264px;
+    height: 264px;
     max-width: calc(100% - 20px);
-    border-width: 4px;
+    border-width: 0;
   }
 
   .lpImaginationButton {
