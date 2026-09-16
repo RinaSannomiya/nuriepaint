@@ -76,6 +76,7 @@ type ImagePreview = {
   imageUrl: string
   reportKind?: '作品' | 'ぬりえ'
   reportId?: string
+  illustrationId?: string
 }
 type LibraryLineArt = {
   id: string
@@ -262,6 +263,7 @@ function App() {
   const [signupConsent, setSignupConsent] = useState(false)
   const [status, setStatus] = useState('')
   const [galleryOpen, setGalleryOpen] = useState(false)
+  const [galleryFilterIllustrationId, setGalleryFilterIllustrationId] = useState<string | null>(null)
   const [galleryGroupMode, setGalleryGroupMode] = useState<GalleryGroupMode>('all')
   const [gallerySortBasis, setGallerySortBasis] = useState<GallerySortBasis>('created')
   const [gallerySortDirection, setGallerySortDirection] = useState<SortDirection>('desc')
@@ -277,6 +279,15 @@ function App() {
   const [lineartCategoryId, setLineartCategoryId] = useState(ILLUSTRATION_CATEGORIES[0]?.id ?? '')
   const [lineartIsLearning, setLineartIsLearning] = useState(false)
   const [lineartReferenceFile, setLineartReferenceFile] = useState<File | null>(null)
+  const [uploadPreviewOpen, setUploadPreviewOpen] = useState(false)
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null)
+  const [uploadPreviewRefUrl, setUploadPreviewRefUrl] = useState<string | null>(null)
+  const [uploadPreviewShowRef, setUploadPreviewShowRef] = useState(false)
+  const [uploadPreviewColor, setUploadPreviewColor] = useState('#EF6950')
+  const [uploadPreviewCommand, setUploadPreviewCommand] = useState<RasterPaintCommand | null>(null)
+  const [uploadAgreeCopyright, setUploadAgreeCopyright] = useState(false)
+  const [uploadAgreePrivacy, setUploadAgreePrivacy] = useState(false)
+  const [uploadAgreeDecency, setUploadAgreeDecency] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<SavedColoring | null>(null)
   const [lineartDeleteTarget, setLineartDeleteTarget] = useState<UploadedLineArt | null>(null)
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null)
@@ -447,6 +458,26 @@ function App() {
     hsl: 'HSVは色相・彩度・明るさ。色み、あざやかさ、明るさを分けて調整できます。',
   }[colorControlMode]
   const settingsPreviewDescription = showColorSliders ? colorModeDescription : 'カラーパレットのみ表示します。'
+
+  const myLineartSections = useMemo(() => {
+    return ILLUSTRATION_CATEGORIES
+      .map((category) => ({
+        id: category.id,
+        title: category.title,
+        items: uploadedLinearts.filter((item) => item.categoryId === category.id),
+      }))
+      .filter((section) => section.items.length > 0)
+  }, [uploadedLinearts])
+
+  const publicLineartSections = useMemo(() => {
+    return ILLUSTRATION_CATEGORIES
+      .map((category) => ({
+        id: category.id,
+        title: category.title,
+        items: publicLinearts.filter((item) => item.categoryId === category.id),
+      }))
+      .filter((section) => section.items.length > 0)
+  }, [publicLinearts])
 
   const savedGallerySections = useMemo(() => {
     const illustrationOrder = new Map(ILLUSTRATIONS.map((it, index) => [it.id, index]))
@@ -761,7 +792,7 @@ function App() {
     ])
   }
 
-  async function openGalleryPage() {
+  async function openGalleryPage(opts?: { illustrationId?: string }) {
     setSelected(null)
     setSelectedCategoryId(null)
     setShowPlayCatalog(false)
@@ -770,7 +801,13 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(true)
     setShowSavedPage(false)
+    setGalleryFilterIllustrationId(opts?.illustrationId ?? null)
     await loadPublicColorings()
+  }
+
+  function viewCommunityForIllustration(illustrationId: string) {
+    setImagePreview(null)
+    void openGalleryPage({ illustrationId })
   }
 
   async function openSavedPage(opts?: { rememberReturn?: boolean }) {
@@ -1378,6 +1415,28 @@ function App() {
       setStatus('色が入っている画像は登録できません。白黒の線画をアップロードしてください。')
       return
     }
+    setUploadPreviewUrl(URL.createObjectURL(lineartFile))
+    setUploadPreviewRefUrl(lineartIsLearning && lineartReferenceFile ? URL.createObjectURL(lineartReferenceFile) : null)
+    setUploadPreviewShowRef(false)
+    setUploadPreviewColor('#EF6950')
+    setUploadPreviewCommand(null)
+    setUploadAgreeCopyright(false)
+    setUploadAgreePrivacy(false)
+    setUploadAgreeDecency(false)
+    setUploadPreviewOpen(true)
+  }
+
+  function closeUploadPreview() {
+    if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl)
+    if (uploadPreviewRefUrl) URL.revokeObjectURL(uploadPreviewRefUrl)
+    setUploadPreviewUrl(null)
+    setUploadPreviewRefUrl(null)
+    setUploadPreviewOpen(false)
+  }
+
+  async function confirmUploadLineart() {
+    if (!lineartFile) return
+    setUploadPreviewOpen(false)
     setStatus('アップロード中...')
     const form = new FormData()
     form.set('title', lineartTitle || lineartFile.name.replace(/\.[^.]+$/, ''))
@@ -1391,6 +1450,10 @@ function App() {
       credentials: 'include',
       body: form,
     })
+    if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl)
+    if (uploadPreviewRefUrl) URL.revokeObjectURL(uploadPreviewRefUrl)
+    setUploadPreviewUrl(null)
+    setUploadPreviewRefUrl(null)
     if (!res.ok || !isJsonResponse(res)) {
       setStatus('アップロードに失敗しました。')
       return
@@ -2040,7 +2103,7 @@ function App() {
                         </button>
                         <figcaption>
                           <strong>{item.title}</strong>
-                          <span>{new Date(item.createdAt).toLocaleString()}</span>
+                          <span>{formatDateDisplay(item.createdAt)}</span>
                         </figcaption>
                       </figure>
                     )) : <p className="emptyInline">まだアップロードされたぬりえはありません。</p>}
@@ -2116,33 +2179,38 @@ function App() {
                       <h2 id="my-linearts-title">自分のぬりえ</h2>
                       <p>公開すると、ほかの人があそぶに追加できるようになります。</p>
                     </div>
-                    <div className="publicGrid" aria-label="自分のぬりえ">
-                      {uploadedLinearts.length ? uploadedLinearts.map((item, idx) => (
-                        <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
-                          <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: '自分のぬりえ', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
-                            <img src={item.imageUrl} alt={item.title} />
-                          </button>
-                          <figcaption>
-                            <strong>{item.title}</strong>
-                            {item.isLearning ? <span>学習用ぬりえ</span> : null}
-                            <label className="lineartCategoryChanger">
-                              <span>カテゴリー</span>
-                              <select value={item.categoryId} onChange={(ev) => updateUploadedLineartCategory(item, ev.target.value)}>
-                                {ILLUSTRATION_CATEGORIES.map((category) => (
-                                  <option value={category.id} key={category.id}>{category.title}</option>
-                                ))}
-                              </select>
-                            </label>
-                            <div className="cardActionRow">
-                              {renderLineartPublishToggle(item)}
-                              <button className="downloadLink savedDeleteLink" type="button" onClick={() => setLineartDeleteTarget(item)}>
-                                削除
+                    {myLineartSections.length ? myLineartSections.map((section) => (
+                      <div className="lineartCategoryGroup" key={section.id}>
+                        <h3 className="lineartCategoryGroupTitle">{section.title}</h3>
+                        <div className="publicGrid" aria-label={`自分のぬりえ - ${section.title}`}>
+                          {section.items.map((item, idx) => (
+                            <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
+                              <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: '自分のぬりえ', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
+                                <img src={item.imageUrl} alt={item.title} />
                               </button>
-                            </div>
-                          </figcaption>
-                        </figure>
-                      )) : <p className="emptyInline">まだアップロードしたぬりえはありません。</p>}
-                    </div>
+                              <figcaption>
+                                <strong>{item.title}</strong>
+                                {item.isLearning ? <span>学習用ぬりえ</span> : null}
+                                <label className="lineartCategoryChanger">
+                                  <span>カテゴリー</span>
+                                  <select value={item.categoryId} onChange={(ev) => updateUploadedLineartCategory(item, ev.target.value)}>
+                                    {ILLUSTRATION_CATEGORIES.map((category) => (
+                                      <option value={category.id} key={category.id}>{category.title}</option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <div className="cardActionRow">
+                                  {renderLineartPublishToggle(item)}
+                                  <button className="downloadLink savedDeleteLink" type="button" onClick={() => setLineartDeleteTarget(item)}>
+                                    削除
+                                  </button>
+                                </div>
+                              </figcaption>
+                            </figure>
+                          ))}
+                        </div>
+                      </div>
+                    )) : <p className="emptyInline">まだアップロードしたぬりえはありません。</p>}
                   </section>
                 </>
               ) : (
@@ -2159,33 +2227,38 @@ function App() {
                   <h2 id="public-linearts-title">みんなのぬりえ</h2>
                   <p>気に入ったぬりえを、あそぶの中に追加できます。</p>
                 </div>
-                <div className="publicGrid" aria-label="みんなのぬりえ">
-                  {publicLinearts.length ? publicLinearts.map((item, idx) => (
-                    <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
-                      <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: item.authorName ? `${item.authorName} さん` : 'ぬりえペイント', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
-                        <img src={item.imageUrl} alt={item.title} />
-                      </button>
-                      <figcaption>
-                        <strong>{item.title}</strong>
-                        <span>{item.authorName ? `${item.authorName} さん` : 'ぬりえペイント'}</span>
-                        {item.isLearning ? <span>学習用ぬりえ</span> : null}
-                        <div className="lineartAddControls">
-                          <label>
-                            <span>カテゴリー</span>
-                            <select value={getLineartAddCategoryId(item.id)} onChange={(ev) => updateLineartAddCategory(item.id, ev.target.value)} disabled={Boolean(item.added)}>
-                              {ILLUSTRATION_CATEGORIES.map((category) => (
-                                <option value={category.id} key={category.id}>{category.title}</option>
-                              ))}
-                            </select>
-                          </label>
-                          <button className={`downloadLink ${item.added ? 'addedLineartButton' : ''}`} type="button" disabled={Boolean(item.added)} onClick={() => addLineartToPlay(item)}>
-                            {item.added ? '追加済み' : 'あそぶに追加'}
+                {publicLineartSections.length ? publicLineartSections.map((section) => (
+                  <div className="lineartCategoryGroup" key={section.id}>
+                    <h3 className="lineartCategoryGroupTitle">{section.title}</h3>
+                    <div className="publicGrid" aria-label={`みんなのぬりえ - ${section.title}`}>
+                      {section.items.map((item, idx) => (
+                        <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
+                          <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: item.authorName ? `${item.authorName} さん` : 'ぬりえペイント', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
+                            <img src={item.imageUrl} alt={item.title} />
                           </button>
-                        </div>
-                      </figcaption>
-                    </figure>
-                  )) : <p className="emptyInline">公開されているぬりえはまだありません。</p>}
-                </div>
+                          <figcaption>
+                            <strong>{item.title}</strong>
+                            <span>{item.authorName ? `${item.authorName} さん` : 'ぬりえペイント'}</span>
+                            {item.isLearning ? <span>学習用ぬりえ</span> : null}
+                            <div className="lineartAddControls">
+                              <label>
+                                <span>カテゴリー</span>
+                                <select value={getLineartAddCategoryId(item.id)} onChange={(ev) => updateLineartAddCategory(item.id, ev.target.value)} disabled={Boolean(item.added)}>
+                                  {ILLUSTRATION_CATEGORIES.map((category) => (
+                                    <option value={category.id} key={category.id}>{category.title}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <button className={`downloadLink ${item.added ? 'addedLineartButton' : ''}`} type="button" disabled={Boolean(item.added)} onClick={() => addLineartToPlay(item)}>
+                                {item.added ? '追加済み' : 'あそぶに追加'}
+                              </button>
+                            </div>
+                          </figcaption>
+                        </figure>
+                      ))}
+                    </div>
+                  </div>
+                )) : <p className="emptyInline">公開されているぬりえはまだありません。</p>}
               </section>
             </section>
           ) : showGalleryPage ? (
@@ -2193,25 +2266,38 @@ function App() {
               <div className="toolIntro">
                 <h1 id="home-title">みんなの作品</h1>
                 <p>みんなが公開した作品を眺められる場所です。</p>
+                {galleryFilterIllustrationId ? (
+                  <div className="galleryFilterChipRow">
+                    <span className="galleryFilterChip">このぬりえの作品だけ表示中</span>
+                    <button className="downloadLink" type="button" onClick={() => setGalleryFilterIllustrationId(null)}>
+                      すべての作品を見る
+                    </button>
+                  </div>
+                ) : null}
               </div>
               <section className="publicGrid" aria-label="みんなの作品">
-                {publicColorings.length ? publicColorings.map((item) => (
-                  <figure className="publicCard" key={item.id}>
-                    <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: item.authorName ? `${item.authorName} さん` : 'ぬりえペイント', imageUrl: item.imageUrl, reportKind: '作品', reportId: item.id })}>
-                      <img src={item.imageUrl} alt={item.title} />
-                    </button>
-                    <figcaption>
-                      <strong>{item.title}</strong>
-                      <span className="authorLine">
-                        {item.authorProfile ? (
-                          <ProfileIcon profile={item.authorProfile} size="small" />
-                        ) : null}
-                        {item.authorName ? `${item.authorName} さん` : 'ぬりえペイント'}
-                      </span>
-                      <span>{item.publishedAt ? `公開: ${new Date(item.publishedAt).toLocaleString()}` : '公開中'}</span>
-                    </figcaption>
-                  </figure>
-                )) : <p className="emptyInline">公開されている作品はまだありません。</p>}
+                {(() => {
+                  const filtered = galleryFilterIllustrationId
+                    ? publicColorings.filter((item) => item.illustrationId === galleryFilterIllustrationId)
+                    : publicColorings
+                  return filtered.length ? filtered.map((item) => (
+                    <figure className="publicCard" key={item.id}>
+                      <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: item.authorName ? `${item.authorName} さん` : 'ぬりえペイント', imageUrl: item.imageUrl, reportKind: '作品', reportId: item.id })}>
+                        <img src={item.imageUrl} alt={item.title} />
+                      </button>
+                      <figcaption>
+                        <strong>{item.title}</strong>
+                        <span className="authorLine">
+                          {item.authorProfile ? (
+                            <ProfileIcon profile={item.authorProfile} size="small" />
+                          ) : null}
+                          {item.authorName ? `${item.authorName} さん` : 'ぬりえペイント'}
+                        </span>
+                        <span>{item.publishedAt ? `公開: ${formatDateDisplay(item.publishedAt)}` : '公開中'}</span>
+                      </figcaption>
+                    </figure>
+                  )) : <p className="emptyInline">{galleryFilterIllustrationId ? 'このぬりえの公開作品はまだありません。' : '公開されている作品はまだありません。'}</p>
+                })()}
               </section>
             </section>
           ) : showSavedPage ? (
@@ -2251,13 +2337,13 @@ function App() {
                         <button
                           className="publicImageButton"
                           type="button"
-                          onClick={() => setImagePreview({ title: item.title, subtitle: 'マイギャラリー', imageUrl: item.imageUrl })}
+                          onClick={() => setImagePreview({ title: item.title, subtitle: 'マイギャラリー', imageUrl: item.imageUrl, illustrationId: item.illustrationId })}
                         >
                           <img src={item.imageUrl} alt={item.title} />
                         </button>
                         <figcaption>
                           <strong>{item.title}</strong>
-                          <span>作成: {new Date(item.createdAt).toLocaleString()}</span>
+                          <span>作成: {formatDateDisplay(item.createdAt)}</span>
                           {renderPublishToggle(item)}
                           <div className="cardActionRow">
                             <button className="downloadLink" type="button" onClick={() => continueColoring(item)}>
@@ -2438,8 +2524,10 @@ function App() {
                   {showQuizCatalog
                       ? (
                         <>
-                          遊びながらたのしく学べるぬりえを集めました。<br />
-                          クイズモードでは、正しい配色に塗れるか挑戦できます。
+                          遊びながらたのしく学べる<br className="learnIntroBreak" />
+                          ぬりえを集めました。<br />
+                          クイズモードでは、<br className="learnIntroBreak" />
+                          正しい配色に塗れるか挑戦できます。
                         </>
                       )
                       : showPlayCatalog
@@ -3078,13 +3166,13 @@ function App() {
                     <div className="galleryGrid">
                       {activeGallerySection.items.map((item) => (
                         <figure className="savedCard" key={item.id}>
-                          <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: 'マイギャラリー', imageUrl: item.imageUrl })}>
+                          <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: 'マイギャラリー', imageUrl: item.imageUrl, illustrationId: item.illustrationId })}>
                             <img src={item.imageUrl} alt={item.title} />
                           </button>
                           <figcaption>
                             <div className="savedInfo">
                               <strong>{item.title}</strong>
-                              <span>作成: {new Date(item.createdAt).toLocaleString()}</span>
+                              <span>作成: {formatDateDisplay(item.createdAt)}</span>
                             </div>
                             <div className="savedActions">
                               {renderPublishToggle(item)}
@@ -3124,6 +3212,13 @@ function App() {
             <div className="imagePreviewBody">
               <img src={imagePreview.imageUrl} alt={imagePreview.title} />
             </div>
+            {imagePreview.illustrationId ? (
+              <div className="imagePreviewActions imagePreviewCommunityActions">
+                <button className="btn" type="button" onClick={() => viewCommunityForIllustration(imagePreview.illustrationId!)}>
+                  みんなの作品もみてみる
+                </button>
+              </div>
+            ) : null}
             {hasReportInfo(imagePreview) ? (
               <div className="imagePreviewActions">
                 <a className="reportButton" href={buildReportMailto(imagePreview)}>
@@ -3205,6 +3300,78 @@ function App() {
                   削除する
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {uploadPreviewOpen && uploadPreviewUrl ? (
+        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="アップロード前の確認">
+          <div className="modal uploadPreviewPanel">
+            <div className="modalHead">
+              <div>
+                <div className="modalTitle">アップロード前の確認</div>
+                <div className="modalSub">実際に塗って、線が途切れていないか確認してください。</div>
+              </div>
+              <button className="btn" type="button" onClick={closeUploadPreview}>
+                閉じる
+              </button>
+            </div>
+            <div className="uploadPreviewBody">
+              {lineartIsLearning && uploadPreviewRefUrl ? (
+                <button className="btn uploadPreviewToggleButton" type="button" onClick={() => setUploadPreviewShowRef((value) => !value)}>
+                  {uploadPreviewShowRef ? '線画にもどす' : '見本と見比べる'}
+                </button>
+              ) : null}
+              <div className="uploadPreviewStage">
+                <RasterLineArt
+                  key={uploadPreviewShowRef ? 'ref' : 'line'}
+                  title={lineartTitle || 'アップロード確認用プレビュー'}
+                  source={uploadPreviewShowRef && uploadPreviewRefUrl ? uploadPreviewRefUrl : uploadPreviewUrl}
+                  color={uploadPreviewColor}
+                  command={uploadPreviewShowRef ? null : uploadPreviewCommand}
+                />
+              </div>
+              {!uploadPreviewShowRef ? (
+                <div className="uploadPreviewPaletteRow">
+                  <Palette value={uploadPreviewColor} onChange={setUploadPreviewColor} showSliders={false} showSwatches swatches={customSwatches} />
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => setUploadPreviewCommand((prev) => ({ seq: (prev?.seq ?? 0) + 1, type: 'reset' }))}
+                  >
+                    塗りをリセット
+                  </button>
+                </div>
+              ) : (
+                <p className="uploadPreviewHint">
+                  ボタンをタップして、線画と見本の配色がずれていないか見比べてください。
+                </p>
+              )}
+              <div className="uploadAgreementList">
+                <label className="uploadAgreementItem">
+                  <input type="checkbox" checked={uploadAgreeCopyright} onChange={(ev) => setUploadAgreeCopyright(ev.target.checked)} />
+                  <span>既存のキャラクター等の著作権に抵触する可能性がない</span>
+                </label>
+                <label className="uploadAgreementItem">
+                  <input type="checkbox" checked={uploadAgreePrivacy} onChange={(ev) => setUploadAgreePrivacy(ev.target.checked)} />
+                  <span>プライバシーに抵触するものではない</span>
+                </label>
+                <label className="uploadAgreementItem">
+                  <input type="checkbox" checked={uploadAgreeDecency} onChange={(ev) => setUploadAgreeDecency(ev.target.checked)} />
+                  <span>公序良俗に反する表現が含まれない</span>
+                </label>
+              </div>
+              <p className="uploadAgreementWarning">
+                上記に抵触する投稿をした場合は、アカウント停止・削除措置が行われます。
+              </p>
+              <button
+                className="btn primaryAction uploadSubmitButton"
+                type="button"
+                disabled={!uploadAgreeCopyright || !uploadAgreePrivacy || !uploadAgreeDecency}
+                onClick={confirmUploadLineart}
+              >
+                アップロードする
+              </button>
             </div>
           </div>
         </div>
@@ -3314,6 +3481,20 @@ function App() {
 
 function isJsonResponse(res: Response) {
   return res.headers.get('content-type')?.includes('application/json') ?? false
+}
+
+function formatDateDisplay(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  const yyyy = d.getFullYear()
+  const m = d.getMonth() + 1
+  const day = d.getDate()
+  let h = d.getHours()
+  const ampm = h < 12 ? 'AM' : 'PM'
+  h = h % 12
+  if (h === 0) h = 12
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${yyyy}/${m}/${day} ${ampm} ${h}:${mm}`
 }
 
 function normalizePaletteSwatches(value: unknown): PaletteSwatch[] {
