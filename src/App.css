@@ -1789,6 +1789,28 @@
   max-height: min(92dvh, 880px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  background: var(--accent-green);
+  color: #fff;
+}
+
+.uploadPreviewHead {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  align-items: flex-start;
+}
+
+.uploadPreviewHead .modalTitle {
+  color: #fff;
+}
+
+.uploadPreviewHead .modalSub {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.uploadPreviewHeadActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .uploadPreviewBody {
@@ -1799,8 +1821,16 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.uploadPreviewResetButton {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--accent);
+}
+
+.uploadPreviewResetButton:hover {
+  background: #fff;
+}
+
 .uploadPreviewToggleButton {
-  justify-self: center;
   background: var(--accent-blue);
   color: #fff;
 }
@@ -1810,9 +1840,18 @@
   color: #fff;
 }
 
+.uploadPreviewCloseButton {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.uploadPreviewCloseButton:hover {
+  background: rgba(255, 255, 255, 0.34);
+}
+
 .uploadPreviewStage {
   border-radius: 22px;
-  background: #f6fafc;
+  background: #fff;
   padding: 16px;
   display: grid;
   place-items: center;
@@ -1824,18 +1863,32 @@
   height: auto;
 }
 
+.uploadPreviewRefImage {
+  display: block;
+  width: min(100%, 420px);
+  height: auto;
+  object-fit: contain;
+}
+
 .uploadPreviewPaletteRow {
-  display: grid;
+  display: flex;
+  align-items: flex-start;
   gap: 10px;
 }
 
 .uploadPreviewPaletteRow .palette {
-  background: #f6fafc;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.uploadPreviewBrushButton {
+  flex: 0 0 auto;
+  background: #fff;
 }
 
 .uploadPreviewHint {
   margin: 0;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.92);
   font-size: 13px;
   line-height: 1.7;
   text-align: center;
@@ -1845,7 +1898,7 @@
   display: grid;
   gap: 10px;
   border-radius: 18px;
-  background: #f6fafc;
+  background: #fff;
   padding: 14px 16px;
 }
 
@@ -1869,9 +1922,12 @@
 
 .uploadAgreementWarning {
   margin: 0;
-  color: var(--accent);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  padding: 10px 14px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.7;
   text-align: center;
 }
@@ -1879,6 +1935,17 @@
 .uploadPreviewBody .uploadSubmitButton {
   justify-self: center;
   min-width: 200px;
+  background: #fff;
+  color: var(--accent-green-dark);
+}
+
+.uploadPreviewBody .uploadSubmitButton:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.uploadPreviewBody .uploadSubmitButton:disabled {
+  background: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .primaryAction {
