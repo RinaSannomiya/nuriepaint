@@ -145,7 +145,7 @@ export function Stage(props: {
           props.onZoomChange(nextZoom)
         }}
         onTouchStart={(ev) => {
-          if (ev.touches.length === 1 && props.zoom > 1) {
+          if (ev.touches.length === 1 && props.zoom > 1 && !props.brush) {
             panRef.current = {
               x: ev.touches[0].clientX,
               y: ev.touches[0].clientY,
@@ -168,7 +168,7 @@ export function Stage(props: {
           }
         }}
         onTouchMove={(ev) => {
-          if (ev.touches.length === 1 && panRef.current && props.zoom > 1) {
+          if (ev.touches.length === 1 && panRef.current && props.zoom > 1 && !props.brush) {
             ev.preventDefault()
             ev.currentTarget.scrollLeft = panRef.current.scrollLeft + panRef.current.x - ev.touches[0].clientX
             ev.currentTarget.scrollTop = panRef.current.scrollTop + panRef.current.y - ev.touches[0].clientY
