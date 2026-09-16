@@ -3781,6 +3781,13 @@
   flex-wrap: wrap;
 }
 
+.galleryTotalCount {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .pageGalleryToolbar {
   padding: 0 0 18px;
 }
