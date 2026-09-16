@@ -16,6 +16,7 @@ export function RasterLineArt(props: {
   command?: RasterPaintCommand | null
   onTwoFingerTap?: () => void
   eyedropper?: boolean
+  brush?: boolean
   onPickColor?: (color: string) => void
   restoreImage?: { url: string; seq: number } | null
   paintMask?: 'circle'
@@ -32,6 +33,8 @@ export function RasterLineArt(props: {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const touchPaintTimerRef = useRef<number | null>(null)
   const twoFingerTapRef = useRef<{ distance: number; centerX: number; centerY: number; startedAt: number } | null>(null)
+  const brushDraggingRef = useRef(false)
+  const lastBrushPointRef = useRef<{ x: number; y: number } | null>(null)
   const stateRef = useRef<{
     barrier: Uint8Array
     lineData: ImageData
@@ -309,6 +312,13 @@ export function RasterLineArt(props: {
     paintAt(clientX, clientY)
   }
 
+  function brushPaintAt(clientX: number, clientY: number) {
+    const last = lastBrushPointRef.current
+    if (last && Math.hypot(clientX - last.x, clientY - last.y) < 8) return
+    lastBrushPointRef.current = { x: clientX, y: clientY }
+    paintAt(clientX, clientY)
+  }
+
   return (
     <canvas
       ref={canvasRef}
@@ -320,12 +330,35 @@ export function RasterLineArt(props: {
         if (ev.pointerType === 'touch') return
         ev.preventDefault()
         interactAt(ev.clientX, ev.clientY)
+        if (props.brush && !props.eyedropper) {
+          brushDraggingRef.current = true
+          lastBrushPointRef.current = { x: ev.clientX, y: ev.clientY }
+        }
+      }}
+      onPointerMove={(ev) => {
+        if (ev.pointerType === 'touch') return
+        if (!brushDraggingRef.current || !props.brush || props.eyedropper) return
+        if (ev.buttons !== 1) return
+        brushPaintAt(ev.clientX, ev.clientY)
+      }}
+      onPointerUp={() => {
+        brushDraggingRef.current = false
+        lastBrushPointRef.current = null
+      }}
+      onPointerLeave={() => {
+        brushDraggingRef.current = false
+        lastBrushPointRef.current = null
+      }}
+      onPointerCancel={() => {
+        brushDraggingRef.current = false
+        lastBrushPointRef.current = null
       }}
       onTouchStart={(ev) => {
         if (ev.touches.length >= 2) {
           ev.preventDefault()
           clearTouchPaintTimer()
           twoFingerTapRef.current = getTwoFingerTouchInfo(ev.touches)
+          lastBrushPointRef.current = null
           return
         }
 
@@ -333,12 +366,24 @@ export function RasterLineArt(props: {
         const touch = ev.touches[0]
         const { clientX, clientY } = touch
         clearTouchPaintTimer()
+        lastBrushPointRef.current = null
         touchPaintTimerRef.current = window.setTimeout(() => {
           touchPaintTimerRef.current = null
           interactAt(clientX, clientY)
+          if (props.brush && !props.eyedropper) {
+            lastBrushPointRef.current = { x: clientX, y: clientY }
+          }
         }, 80)
       }}
       onTouchMove={(ev) => {
+        if (ev.touches.length === 1 && props.brush && !props.eyedropper) {
+          ev.preventDefault()
+          clearTouchPaintTimer()
+          const touch = ev.touches[0]
+          brushPaintAt(touch.clientX, touch.clientY)
+          return
+        }
+
         clearTouchPaintTimer()
         const start = twoFingerTapRef.current
         if (!start || ev.touches.length < 2) return
@@ -349,6 +394,7 @@ export function RasterLineArt(props: {
       }}
       onTouchEnd={() => {
         clearTouchPaintTimer()
+        lastBrushPointRef.current = null
         const start = twoFingerTapRef.current
         if (!start) return
         clearTwoFingerTap()
@@ -357,6 +403,7 @@ export function RasterLineArt(props: {
       onTouchCancel={() => {
         clearTouchPaintTimer()
         clearTwoFingerTap()
+        lastBrushPointRef.current = null
       }}
     />
   )
