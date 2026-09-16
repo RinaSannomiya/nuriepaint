@@ -264,6 +264,8 @@ function App() {
   const [status, setStatus] = useState('')
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryFilterIllustrationId, setGalleryFilterIllustrationId] = useState<string | null>(null)
+  const [myLineartCategoryFilter, setMyLineartCategoryFilter] = useState<string | null>(null)
+  const [publicLineartCategoryFilter, setPublicLineartCategoryFilter] = useState<string | null>(null)
   const [galleryGroupMode, setGalleryGroupMode] = useState<GalleryGroupMode>('all')
   const [gallerySortBasis, setGallerySortBasis] = useState<GallerySortBasis>('created')
   const [gallerySortDirection, setGallerySortDirection] = useState<SortDirection>('desc')
@@ -2095,7 +2097,7 @@ function App() {
                       <span>画像ファイル</span>
                       <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(ev) => setLineartFile(ev.target.files?.[0] ?? null)} />
                     </label>
-                    <button className="btn primaryAction" type="submit">アップロード</button>
+                    <button className="btn primaryAction" type="submit">チェック画面へ</button>
                   </form>
                   <section className="publicGrid" aria-label="アップロード済みぬりえ">
                     {uploadedLinearts.length ? uploadedLinearts.map((item) => (
@@ -2174,45 +2176,62 @@ function App() {
                     <p className="uploadCaution">
                       ※不適切だと判断されるものを公開した場合は運営から削除される可能性があります。
                     </p>
-                    <button className="btn primaryAction uploadSubmitButton" type="submit">アップロード</button>
+                    <button className="btn primaryAction uploadSubmitButton" type="submit">チェック画面へ</button>
                   </form>
                   <section className="lineartSection" aria-labelledby="my-linearts-title">
                     <div className="lineartSectionHead">
                       <h2 id="my-linearts-title">自分のぬりえ</h2>
                       <p>公開すると、ほかの人があそぶに追加できるようになります。</p>
                     </div>
-                    {myLineartSections.length ? myLineartSections.map((section) => (
-                      <div className="lineartCategoryGroup" key={section.id}>
-                        <h3 className="lineartCategoryGroupTitle">{section.title}</h3>
-                        <div className="publicGrid" aria-label={`自分のぬりえ - ${section.title}`}>
-                          {section.items.map((item, idx) => (
-                            <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
-                              <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: '自分のぬりえ', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
-                                <img src={item.imageUrl} alt={item.title} />
+                    {myLineartSections.length ? (() => {
+                      const activeId = myLineartCategoryFilter && myLineartSections.some((s) => s.id === myLineartCategoryFilter)
+                        ? myLineartCategoryFilter
+                        : myLineartSections[0].id
+                      const active = myLineartSections.find((s) => s.id === activeId) ?? myLineartSections[0]
+                      return (
+                        <>
+                          <div className="galleryCategoryButtons" role="list" aria-label="自分のぬりえのカテゴリー">
+                            {myLineartSections.map((section) => (
+                              <button
+                                className={`galleryCategoryButton ${activeId === section.id ? 'activeGalleryCategory' : ''}`}
+                                type="button"
+                                key={section.id}
+                                onClick={() => setMyLineartCategoryFilter(section.id)}
+                              >
+                                <span>{section.title}</span>
+                                <small>{section.items.length}</small>
                               </button>
-                              <figcaption>
-                                <strong>{item.title}</strong>
-                                {item.isLearning ? <span>学習用ぬりえ</span> : null}
-                                <label className="lineartCategoryChanger">
-                                  <span>カテゴリー</span>
-                                  <select value={item.categoryId} onChange={(ev) => updateUploadedLineartCategory(item, ev.target.value)}>
-                                    {ILLUSTRATION_CATEGORIES.map((category) => (
-                                      <option value={category.id} key={category.id}>{category.title}</option>
-                                    ))}
-                                  </select>
-                                </label>
-                                <div className="cardActionRow">
-                                  {renderLineartPublishToggle(item)}
-                                  <button className="downloadLink savedDeleteLink" type="button" onClick={() => setLineartDeleteTarget(item)}>
-                                    削除
-                                  </button>
-                                </div>
-                              </figcaption>
-                            </figure>
-                          ))}
-                        </div>
-                      </div>
-                    )) : <p className="emptyInline">まだアップロードしたぬりえはありません。</p>}
+                            ))}
+                          </div>
+                          <div className="publicGrid" aria-label={`自分のぬりえ - ${active.title}`}>
+                            {active.items.map((item, idx) => (
+                              <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
+                                <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: '自分のぬりえ', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
+                                  <img src={item.imageUrl} alt={item.title} />
+                                </button>
+                                <figcaption>
+                                  <strong>{item.title}</strong>
+                                  {item.isLearning ? <span>学習用ぬりえ</span> : null}
+                                  <label className="lineartCategoryChanger">
+                                    <select aria-label="カテゴリー" value={item.categoryId} onChange={(ev) => updateUploadedLineartCategory(item, ev.target.value)}>
+                                      {ILLUSTRATION_CATEGORIES.map((category) => (
+                                        <option value={category.id} key={category.id}>{category.title}</option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <div className="cardActionRow">
+                                    {renderLineartPublishToggle(item)}
+                                    <button className="downloadLink savedDeleteLink" type="button" onClick={() => setLineartDeleteTarget(item)}>
+                                      削除
+                                    </button>
+                                  </div>
+                                </figcaption>
+                              </figure>
+                            ))}
+                          </div>
+                        </>
+                      )
+                    })() : <p className="emptyInline">まだアップロードしたぬりえはありません。</p>}
                   </section>
                 </>
               ) : (
@@ -2229,38 +2248,56 @@ function App() {
                   <h2 id="public-linearts-title">みんなのぬりえ</h2>
                   <p>気に入ったぬりえを、あそぶの中に追加できます。</p>
                 </div>
-                {publicLineartSections.length ? publicLineartSections.map((section) => (
-                  <div className="lineartCategoryGroup" key={section.id}>
-                    <h3 className="lineartCategoryGroupTitle">{section.title}</h3>
-                    <div className="publicGrid" aria-label={`みんなのぬりえ - ${section.title}`}>
-                      {section.items.map((item, idx) => (
-                        <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
-                          <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: item.authorName ? `${item.authorName} さん` : 'ぬりえペイント', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
-                            <img src={item.imageUrl} alt={item.title} />
+                {publicLineartSections.length ? (() => {
+                  const activeId = publicLineartCategoryFilter && publicLineartSections.some((s) => s.id === publicLineartCategoryFilter)
+                    ? publicLineartCategoryFilter
+                    : publicLineartSections[0].id
+                  const active = publicLineartSections.find((s) => s.id === activeId) ?? publicLineartSections[0]
+                  return (
+                    <>
+                      <div className="galleryCategoryButtons" role="list" aria-label="みんなのぬりえのカテゴリー">
+                        {publicLineartSections.map((section) => (
+                          <button
+                            className={`galleryCategoryButton ${activeId === section.id ? 'activeGalleryCategory' : ''}`}
+                            type="button"
+                            key={section.id}
+                            onClick={() => setPublicLineartCategoryFilter(section.id)}
+                          >
+                            <span>{section.title}</span>
+                            <small>{section.items.length}</small>
                           </button>
-                          <figcaption>
-                            <strong>{item.title}</strong>
-                            <span>{item.authorName ? `${item.authorName} さん` : 'ぬりえペイント'}</span>
-                            {item.isLearning ? <span>学習用ぬりえ</span> : null}
-                            <div className="lineartAddControls">
-                              <label>
-                                <span>カテゴリー</span>
-                                <select value={getLineartAddCategoryId(item.id)} onChange={(ev) => updateLineartAddCategory(item.id, ev.target.value)} disabled={Boolean(item.added)}>
-                                  {ILLUSTRATION_CATEGORIES.map((category) => (
-                                    <option value={category.id} key={category.id}>{category.title}</option>
-                                  ))}
-                                </select>
-                              </label>
-                              <button className={`downloadLink ${item.added ? 'addedLineartButton' : ''}`} type="button" disabled={Boolean(item.added)} onClick={() => addLineartToPlay(item)}>
-                                {item.added ? '追加済み' : 'あそぶに追加'}
-                              </button>
-                            </div>
-                          </figcaption>
-                        </figure>
-                      ))}
-                    </div>
-                  </div>
-                )) : <p className="emptyInline">公開されているぬりえはまだありません。</p>}
+                        ))}
+                      </div>
+                      <div className="publicGrid" aria-label={`みんなのぬりえ - ${active.title}`}>
+                        {active.items.map((item, idx) => (
+                          <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
+                            <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: item.authorName ? `${item.authorName} さん` : 'ぬりえペイント', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
+                              <img src={item.imageUrl} alt={item.title} />
+                            </button>
+                            <figcaption>
+                              <strong>{item.title}</strong>
+                              <span>{item.authorName ? `${item.authorName} さん` : 'ぬりえペイント'}</span>
+                              {item.isLearning ? <span>学習用ぬりえ</span> : null}
+                              <div className="lineartAddControls">
+                                <label>
+                                  <span>カテゴリー</span>
+                                  <select value={getLineartAddCategoryId(item.id)} onChange={(ev) => updateLineartAddCategory(item.id, ev.target.value)} disabled={Boolean(item.added)}>
+                                    {ILLUSTRATION_CATEGORIES.map((category) => (
+                                      <option value={category.id} key={category.id}>{category.title}</option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <button className={`downloadLink ${item.added ? 'addedLineartButton' : ''}`} type="button" disabled={Boolean(item.added)} onClick={() => addLineartToPlay(item)}>
+                                  {item.added ? '追加済み' : 'あそぶに追加'}
+                                </button>
+                              </div>
+                            </figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    </>
+                  )
+                })() : <p className="emptyInline">公開されているぬりえはまだありません。</p>}
               </section>
             </section>
           ) : showGalleryPage ? (
