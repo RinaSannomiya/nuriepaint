@@ -11,6 +11,7 @@ export function FlagPage(props: {
   color?: string
   command?: RasterPaintCommand | null
   eyedropper?: boolean
+  brush?: boolean
   onPickColor?: (color: string) => void
   restoreImage?: { url: string; seq: number } | null
 }) {
@@ -22,6 +23,7 @@ export function FlagPage(props: {
       color={props.color}
       command={props.command}
       eyedropper={props.eyedropper}
+      brush={props.brush}
       onPickColor={props.onPickColor}
       restoreImage={props.restoreImage}
     />
