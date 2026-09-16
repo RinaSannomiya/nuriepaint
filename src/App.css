@@ -1883,14 +1883,37 @@
 }
 
 .uploadPreviewDock {
-  position: static;
-  padding: 0;
   border-radius: 22px;
   background: #fff;
+  padding: 12px;
 }
 
 .uploadPreviewDock .palette {
   background: #fff;
+  grid-template-columns: 116px minmax(240px, 1fr) minmax(220px, auto);
+  grid-template-rows: 44px auto;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.uploadPreviewDock .paletteLeft {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.uploadPreviewDock .paletteControls {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.uploadPreviewDock .paletteActions {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.uploadPreviewDock .swatches {
+  grid-column: 3;
+  grid-row: 2;
 }
 
 .uploadPreviewBrushButton {
@@ -5188,6 +5211,20 @@
     grid-template-columns: 1fr;
     grid-template-rows: none;
     gap: 10px;
+  }
+
+  .uploadPreviewDock .palette {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    gap: 10px;
+  }
+
+  .uploadPreviewDock .paletteLeft,
+  .uploadPreviewDock .paletteControls,
+  .uploadPreviewDock .paletteActions,
+  .uploadPreviewDock .swatches {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .paletteLeft {
