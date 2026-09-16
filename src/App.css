@@ -4890,6 +4890,12 @@
     border-radius: 14px;
   }
 
+  .paletteDock .palette {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    gap: 10px;
+  }
+
   .paletteLeft {
     justify-content: space-between;
     padding-right: 0;
