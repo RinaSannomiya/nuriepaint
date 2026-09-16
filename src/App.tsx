@@ -227,6 +227,7 @@ function App() {
   const [paletteSettingsReady, setPaletteSettingsReady] = useState(false)
   const [artZoom, setArtZoom] = useState(1)
   const [eyedropper, setEyedropper] = useState(false)
+  const [brush, setBrush] = useState(false)
   const [restoreImage, setRestoreImage] = useState<{ url: string; seq: number } | null>(null)
   const [rasterCommand, setRasterCommand] = useState<RasterPaintCommand | null>(null)
   const [quizMode, setQuizMode] = useState(false)
@@ -646,6 +647,7 @@ function App() {
     setRestoreImage(null)
     setArtZoom(1)
     setEyedropper(false)
+    setBrush(false)
     setSelected(id)
     setQuizResult(null)
     setQuizMode(nextQuiz)
@@ -1501,6 +1503,7 @@ function App() {
     setSelected(item.illustrationId)
     setArtZoom(1)
     setEyedropper(false)
+    setBrush(false)
     setShowSavedPage(false)
     setGalleryOpen(false)
     window.requestAnimationFrame(() => {
@@ -1853,8 +1856,11 @@ function App() {
               <button className="btn zoomResetButton topZoomResetButton" type="button" onClick={() => setArtZoom(1)} disabled={artZoom <= 1} aria-label="100%に戻す" title="100%に戻す">
                 100%
               </button>
-              <button className={`btn iconButton topEyedropperButton ${eyedropper ? 'activeTool' : ''}`} type="button" onClick={() => setEyedropper((value) => !value)} aria-label="スポイト" title="スポイト">
+              <button className={`btn iconButton topEyedropperButton ${eyedropper ? 'activeTool' : ''}`} type="button" onClick={() => { setEyedropper((value) => !value); setBrush(false) }} aria-label="スポイト" title="スポイト">
                 <EyedropperIcon />
+              </button>
+              <button className={`btn iconButton topBrushButton ${brush ? 'activeTool' : ''}`} type="button" onClick={() => { setBrush((value) => !value); setEyedropper(false) }} aria-label="ブラシ" title="ブラシ">
+                <BrushIcon />
               </button>
               <button className="btn btnDanger resetTopButton" type="button" onClick={reset}>
                 リセット
@@ -1895,6 +1901,7 @@ function App() {
                   zoom={artZoom}
                   onZoomChange={setArtZoom}
                   eyedropper={eyedropper}
+                  brush={brush}
                   restoreImage={restoreImage}
                   quizMode={quizMode}
                   quizAvailable={Boolean(selectedQuiz)}
@@ -1931,8 +1938,11 @@ function App() {
               <button className="btn iconButton mobileRedoButton" type="button" onClick={redo} disabled={redoDisabled} aria-label="進む" title="進む">
                 <RedoIcon />
               </button>
-              <button className={`btn iconButton mobileEyedropperButton ${eyedropper ? 'activeTool' : ''}`} type="button" onClick={() => setEyedropper((value) => !value)} aria-label="スポイト" title="スポイト">
+              <button className={`btn iconButton mobileEyedropperButton ${eyedropper ? 'activeTool' : ''}`} type="button" onClick={() => { setEyedropper((value) => !value); setBrush(false) }} aria-label="スポイト" title="スポイト">
                 <EyedropperIcon />
+              </button>
+              <button className={`btn iconButton mobileBrushButton ${brush ? 'activeTool' : ''}`} type="button" onClick={() => { setBrush((value) => !value); setEyedropper(false) }} aria-label="ブラシ" title="ブラシ">
+                <BrushIcon />
               </button>
               <button className="btn btnDanger tabletPaletteResetButton" type="button" onClick={reset}>
                 リセット
@@ -1966,8 +1976,11 @@ function App() {
                     <button className="btn iconButton paletteActionButton" type="button" onClick={redo} disabled={redoDisabled} aria-label="進む" title="進む">
                       <RedoIcon />
                     </button>
-                    <button className={`btn iconButton paletteActionButton ${eyedropper ? 'activeTool' : ''}`} type="button" onClick={() => setEyedropper((value) => !value)} aria-label="スポイト" title="スポイト">
+                    <button className={`btn iconButton paletteActionButton ${eyedropper ? 'activeTool' : ''}`} type="button" onClick={() => { setEyedropper((value) => !value); setBrush(false) }} aria-label="スポイト" title="スポイト">
                       <EyedropperIcon />
+                    </button>
+                    <button className={`btn iconButton paletteActionButton ${brush ? 'activeTool' : ''}`} type="button" onClick={() => { setBrush((value) => !value); setEyedropper(false) }} aria-label="ブラシ" title="ブラシ">
+                      <BrushIcon />
                     </button>
                   </>
                 )}
@@ -3723,6 +3736,16 @@ function RedoIcon() {
 
 function EyedropperIcon() {
   return <img className="buttonIcon imageButtonIcon" src="/icons/spoit.png" alt="" aria-hidden="true" />
+}
+
+function BrushIcon() {
+  return (
+    <svg className="buttonIcon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M17.5 3.5c1.1-1.1 2.9-1.1 4 0 1.1 1.1 1.1 2.9 0 4l-7.7 7.7-4-4Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d="M13.8 11.2c.5 1.6.1 3.4-1.2 4.7-1.6 1.6-5.4 2-7.8 2.1-.5 0-.9-.4-.8-.9.2-2.4.6-6.2 2.1-7.8 1.3-1.3 3.1-1.7 4.7-1.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx="5.5" cy="18.5" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
 }
 
 function GearIcon() {
