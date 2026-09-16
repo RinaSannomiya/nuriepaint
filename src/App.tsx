@@ -1793,7 +1793,7 @@ function App() {
             <button className={`mobileMenuLink ${activeTopPage === 'spread' ? 'activeMobileMenuLink' : ''}`} type="button" onClick={() => runMobileMenuAction(openSpreadPage)}>
               ひろげる
             </button>
-            <button className={`mobileMenuLink ${activeTopPage === 'gallery' ? 'activeMobileMenuLink' : ''}`} type="button" onClick={() => runMobileMenuAction(openGalleryPage)}>
+            <button className={`mobileMenuLink ${activeTopPage === 'gallery' ? 'activeMobileMenuLink' : ''}`} type="button" onClick={() => runMobileMenuAction(() => openGalleryPage())}>
               みんなの作品
             </button>
             {authUser ? (
@@ -1846,7 +1846,7 @@ function App() {
           <button className={`navLink ${activeTopPage === 'spread' ? 'activeNav' : ''}`} type="button" onClick={openSpreadPage}>
             ひろげる
           </button>
-          <button className={`navLink galleryNavButton ${activeTopPage === 'gallery' ? 'activeNav' : ''}`} type="button" onClick={openGalleryPage}>
+          <button className={`navLink galleryNavButton ${activeTopPage === 'gallery' ? 'activeNav' : ''}`} type="button" onClick={() => openGalleryPage()}>
             みんなの作品
           </button>
           {!selected ? (
