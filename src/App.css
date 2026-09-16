@@ -1165,7 +1165,7 @@
   overflow: hidden;
 }
 
-.lpImaginationButton {
+.bandLink.lpImaginationButton {
   min-width: 260px;
   min-height: 66px;
   padding: 18px 40px;
@@ -1174,7 +1174,7 @@
   font-size: 18px;
 }
 
-.lpImaginationButton:hover {
+.bandLink.lpImaginationButton:hover {
   background: var(--accent-green);
   color: var(--accent-yellow);
 }
@@ -5217,7 +5217,7 @@
     border-width: 0;
   }
 
-  .lpImaginationButton {
+  .bandLink.lpImaginationButton {
     min-width: 0;
     width: 80%;
     min-height: 54px;
