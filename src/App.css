@@ -358,7 +358,7 @@
   max-width: min(520px, calc(100vw - 28px));
   transform: translateX(-50%);
   padding: 10px 14px;
-  border: 2px solid var(--accent);
+  border: 2px solid var(--accent-green);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 10px 34px rgba(66, 77, 97, 0.12);
@@ -422,6 +422,10 @@
 }
 
 .heroCatchNarrowBreak {
+  display: none;
+}
+
+.learnIntroBreak {
   display: none;
 }
 
@@ -1780,6 +1784,103 @@
   background: #fff5f2;
 }
 
+.uploadPreviewPanel {
+  width: min(640px, 94vw);
+  max-height: min(92dvh, 880px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.uploadPreviewBody {
+  padding: 18px 20px 22px;
+  display: grid;
+  gap: 14px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.uploadPreviewToggleButton {
+  justify-self: center;
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.uploadPreviewToggleButton:hover {
+  background: var(--accent-blue-dark);
+  color: #fff;
+}
+
+.uploadPreviewStage {
+  border-radius: 22px;
+  background: #f6fafc;
+  padding: 16px;
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+}
+
+.uploadPreviewStage .rasterCanvas {
+  width: min(100%, 420px);
+  height: auto;
+}
+
+.uploadPreviewPaletteRow {
+  display: grid;
+  gap: 10px;
+}
+
+.uploadPreviewPaletteRow .palette {
+  background: #f6fafc;
+}
+
+.uploadPreviewHint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.uploadAgreementList {
+  display: grid;
+  gap: 10px;
+  border-radius: 18px;
+  background: #f6fafc;
+  padding: 14px 16px;
+}
+
+.uploadAgreementItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.uploadAgreementItem input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--accent-blue);
+}
+
+.uploadAgreementWarning {
+  margin: 0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.uploadPreviewBody .uploadSubmitButton {
+  justify-self: center;
+  min-width: 200px;
+}
+
 .primaryAction {
   background: var(--accent);
   color: #fff;
@@ -1871,6 +1972,55 @@
   color: var(--muted);
   font-size: 14px;
   line-height: 1.7;
+}
+
+.lineartCategoryGroup {
+  display: grid;
+  gap: 14px;
+}
+
+.lineartCategoryGroup + .lineartCategoryGroup {
+  margin-top: 8px;
+}
+
+.lineartCategoryGroupTitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  padding-left: 2px;
+  border-left: 4px solid var(--accent-blue);
+  padding-left: 10px;
+}
+
+.galleryFilterChipRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.galleryFilterChip {
+  border-radius: 999px;
+  background: rgba(41, 162, 222, 0.12);
+  color: var(--accent-blue-dark);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.imagePreviewCommunityActions {
+  justify-content: center;
+}
+
+.imagePreviewCommunityActions .btn {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.imagePreviewCommunityActions .btn:hover {
+  background: var(--accent-blue-dark);
 }
 
 .spreadLockedPanel {
@@ -5059,6 +5209,10 @@
   }
 
   .heroCatchNarrowBreak {
+    display: block;
+  }
+
+  .learnIntroBreak {
     display: block;
   }
 
