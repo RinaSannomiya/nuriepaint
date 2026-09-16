@@ -404,11 +404,9 @@ const TOOL_ILLUSTRATIONS: IllustrationDef[] = TOOL_DATA.map((item) => ({
 }))
 
 const LIVING_THING_DATA = [
-  { page: '01', title: 'フクロウ', subtitle: 'Owl' },
   { page: '02', title: 'ウミガメ', subtitle: 'Sea turtle' },
   { page: '03', title: 'カエル', subtitle: 'Frog' },
   { page: '04', title: 'カメレオン', subtitle: 'Chameleon' },
-  { page: '05', title: 'オウム', subtitle: 'Parrot' },
 ]
 
 const LIVING_THING_ILLUSTRATIONS: IllustrationDef[] = LIVING_THING_DATA.map((item) => ({
@@ -422,6 +420,34 @@ const LIVING_THING_ILLUSTRATIONS: IllustrationDef[] = LIVING_THING_DATA.map((ite
       {...props}
       title={item.title}
       source={`/lineart/living-things/living-${item.page}.png`}
+    />
+  ),
+}))
+
+const BIRD_DATA = [
+  { id: 'bird-owl', title: 'フクロウ', subtitle: 'Owl', source: '/lineart/living-things/living-01.png' },
+  { id: 'bird-parrot', title: 'オウム', subtitle: 'Parrot', source: '/lineart/living-things/living-05.png' },
+  { id: 'bird-01', title: 'クジャク', subtitle: 'Peacock', source: '/lineart/birds/bird-01.png' },
+  { id: 'bird-02', title: 'ペンギン', subtitle: 'Penguin', source: '/lineart/birds/bird-02.png' },
+  { id: 'bird-03', title: 'フラミンゴ', subtitle: 'Flamingo', source: '/lineart/birds/bird-03.png' },
+  { id: 'bird-04', title: 'ワシ', subtitle: 'Eagle', source: '/lineart/birds/bird-04.png' },
+  { id: 'bird-05', title: 'ハクチョウ', subtitle: 'Swan', source: '/lineart/birds/bird-05.png' },
+  { id: 'bird-06', title: 'オオハシ', subtitle: 'Toucan', source: '/lineart/birds/bird-06.png' },
+  { id: 'bird-07', title: 'ニワトリ', subtitle: 'Rooster', source: '/lineart/birds/bird-07.png' },
+  { id: 'bird-08', title: 'ハチドリ', subtitle: 'Hummingbird', source: '/lineart/birds/bird-08.png' },
+]
+
+const BIRD_ILLUSTRATIONS: IllustrationDef[] = BIRD_DATA.map((item) => ({
+  id: item.id,
+  title: item.title,
+  subtitle: item.subtitle,
+  thumbnailImage: item.source,
+  raster: true,
+  node: (props) => (
+    <RasterLineArt
+      {...props}
+      title={item.title}
+      source={item.source}
     />
   ),
 }))
@@ -490,6 +516,7 @@ export const ILLUSTRATIONS: IllustrationDef[] = [
   ...INSECT_ILLUSTRATIONS,
   ...TOOL_ILLUSTRATIONS,
   ...LIVING_THING_ILLUSTRATIONS,
+  ...BIRD_ILLUSTRATIONS,
   ...FISH_ILLUSTRATIONS,
   ...PATTERN_ILLUSTRATIONS,
 ]
@@ -525,6 +552,7 @@ export const ILLUSTRATION_CATEGORIES: IllustrationCategory[] = [
   { id: 'insects', title: 'むし', subtitle: '', illustrationIds: INSECT_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'dinosaurs', title: 'きょうりゅう', subtitle: '', illustrationIds: DINOSAUR_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'living-things', title: 'いきもの', subtitle: '', illustrationIds: LIVING_THING_ILLUSTRATIONS.map((it) => it.id) },
+  { id: 'birds', title: 'とり', subtitle: '', illustrationIds: BIRD_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'fish', title: 'さかな', subtitle: '', illustrationIds: FISH_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'patterns', title: 'もよう', subtitle: '', illustrationIds: PATTERN_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'vehicles', title: 'のりもの', subtitle: '', illustrationIds: VEHICLE_ILLUSTRATIONS.map((it) => it.id) },
