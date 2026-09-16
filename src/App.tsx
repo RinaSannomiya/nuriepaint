@@ -401,6 +401,10 @@ function App() {
       .map((id) => ILLUSTRATIONS.find((it) => it.id === id))
       .filter((it): it is IllustrationDef => Boolean(it))
   }, [])
+  const lpTryRandomIllustration = useMemo(() => {
+    if (!ILLUSTRATIONS.length) return null
+    return ILLUSTRATIONS[Math.floor(Math.random() * ILLUSTRATIONS.length)]
+  }, [])
 
   const fills = selected ? state.fillsByIllustration[selected] ?? {} : {}
   const selectedQuiz = selected ? quizConfigs[selected] ?? null : null
@@ -2284,7 +2288,6 @@ function App() {
                       <p>
                         「クレヨンだと周りのものを汚してしまう…」<br />
                         「色鉛筆で広い面を塗るのは大変…」<br />
-                        「色塗り道具がちらかる、なくなる…」<br />
                         ぬりえペイントなら、いつでもどこでも色の構成だけに集中してぬりえを楽しめます。
                       </p>
                       <button className="btn lpFeatureButton lpFeatureButtonBlue" type="button" onClick={openPlayCatalog}>
@@ -2347,7 +2350,7 @@ function App() {
                         {lpPreviewIllustrations[1] ? <IllustrationThumb illustration={lpPreviewIllustrations[1]} /> : null}
                       </div>
                     </div>
-                    <div>
+                    <div className="lpAccountBenefitText">
                       <h3>自分のぬりえを保存できる</h3>
                       <p>あとから見返したり、続きからはじめたりすることができるように。</p>
                     </div>
@@ -2358,7 +2361,7 @@ function App() {
                         {lpPreviewIllustrations[2] ? <IllustrationThumb illustration={lpPreviewIllustrations[2]} /> : null}
                       </div>
                     </div>
-                    <div>
+                    <div className="lpAccountBenefitText">
                       <h3>ぬりえクイズの結果を残せる</h3>
                       <p>
                         ゲーム感覚でぬりえを楽しんで、知識を身につけられます。<br />
@@ -2374,9 +2377,14 @@ function App() {
                         <i />
                       </div>
                     </div>
-                    <div>
+                    <div className="lpAccountBenefitText">
                       <h3>ぬりえを追加できる</h3>
                       <p>ぬりえをインストールすれば楽しみが無限大に。</p>
+                      {!authUser ? (
+                        <button className="btn lpAccountBenefitAddButton" type="button" onClick={openSignupPanel}>
+                          アカウント作成する
+                        </button>
+                      ) : null}
                     </div>
                   </section>
                 </div>
@@ -2390,10 +2398,20 @@ function App() {
                 <div className="featureInner lpImaginationBandInner">
                   <h2 id="lp-imagination-title">Reveal the imagination within.</h2>
                   <p>
-                    ぬりえが得意じゃない子も、実は「塗る作業」が苦手なだけで、色を配置するのは好きなのかも。<br />
                     ぬりえペイントがきっかけで、いままで知らなかったお子さんの配色センスを知ることができるかもしれません。
                   </p>
-                  <button className="btn bandLink lpImaginationButton" type="button" onClick={() => chooseIllustration('animal-11')}>
+                  {lpTryRandomIllustration ? (
+                    <div className="lpTryPreviewFrame" aria-hidden="true">
+                      <div className="lpMiniPaper lpTryPreviewPaper">
+                        <IllustrationThumb illustration={lpTryRandomIllustration} />
+                      </div>
+                    </div>
+                  ) : null}
+                  <button
+                    className="btn bandLink lpImaginationButton"
+                    type="button"
+                    onClick={() => chooseIllustration(lpTryRandomIllustration ? lpTryRandomIllustration.id : 'animal-11')}
+                  >
                     ためしにやってみる
                   </button>
                 </div>
@@ -2514,12 +2532,6 @@ function App() {
           )}
           {!selected ? (
             <footer className="siteFooter">
-              <nav className="footerLinks" aria-label="フッター">
-                <button type="button" onClick={() => setTermsOpen(true)}>利用規約</button>
-                <button type="button" onClick={() => setPrivacyOpen(true)}>プライバシーポリシー</button>
-                <button type="button" onClick={() => setContactOpen(true)}>お問い合わせ</button>
-              </nav>
-              <p className="footerCopyright">© 2026 ぬりえペイント</p>
               <div className="footerBrand" aria-label="ぬりえペイント">
                 <img src="/icons/nuriepaint-mark.png" alt="" aria-hidden="true" />
                 <span className="titleCoral">ぬ</span>
@@ -2530,6 +2542,12 @@ function App() {
                 <span className="titleBlue">ン</span>
                 <span className="titleCoral">ト</span>
               </div>
+              <nav className="footerLinks" aria-label="フッター">
+                <button type="button" onClick={() => setTermsOpen(true)}>利用規約</button>
+                <button type="button" onClick={() => setPrivacyOpen(true)}>プライバシーポリシー</button>
+                <button type="button" onClick={() => setContactOpen(true)}>お問い合わせ</button>
+              </nav>
+              <p className="footerCopyright">© 2026 ぬりえペイント</p>
             </footer>
           ) : null}
         </main>
