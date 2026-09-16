@@ -1774,6 +1774,12 @@
   justify-self: center;
 }
 
+.uploadCheckButton {
+  min-height: 56px;
+  padding-inline: 34px;
+  font-size: 17px;
+}
+
 .spreadUploadPanel .uploadSubmitButton {
   background: #fff;
   color: #ef6950;
@@ -1784,8 +1790,8 @@
   background: #fff5f2;
 }
 
-.uploadPreviewPanel {
-  width: min(640px, 94vw);
+.modal.uploadPreviewPanel {
+  width: min(680px, 94vw);
   max-height: min(92dvh, 880px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -1852,20 +1858,20 @@
 .uploadPreviewStage {
   border-radius: 22px;
   background: #fff;
-  padding: 16px;
+  padding: 14px;
   display: grid;
   place-items: center;
-  min-height: 260px;
+  min-height: 220px;
 }
 
 .uploadPreviewStage .rasterCanvas {
-  width: min(100%, 420px);
+  width: min(100%, 380px);
   height: auto;
 }
 
 .uploadPreviewRefImage {
   display: block;
-  width: min(100%, 420px);
+  width: min(100%, 380px);
   height: auto;
   object-fit: contain;
 }
@@ -1876,9 +1882,15 @@
   gap: 10px;
 }
 
-.uploadPreviewPaletteRow .palette {
-  flex: 1 1 auto;
-  min-width: 0;
+.uploadPreviewDock {
+  position: static;
+  padding: 0;
+  border-radius: 22px;
+  background: #fff;
+}
+
+.uploadPreviewDock .palette {
+  background: #fff;
 }
 
 .uploadPreviewBrushButton {
@@ -2044,6 +2056,10 @@
 .lineartCategoryGroup {
   display: grid;
   gap: 14px;
+}
+
+.lineartCategoryActiveHead {
+  margin: 0 0 4px;
 }
 
 .lineartCategoryGroup + .lineartCategoryGroup {
@@ -2231,6 +2247,43 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.savedCardActionRow {
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.savedCardActionRow .publishToggle {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 5px 10px 5px 6px;
+  font-size: 12px;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.savedCardActionRow .downloadLink {
+  flex: 0 0 auto;
+}
+
+.savedDeleteIconButton {
+  flex: 0 0 auto;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 105, 80, 0.12);
+  color: var(--accent);
+}
+
+.savedDeleteIconButton .buttonIcon {
+  width: 16px;
+  height: 16px;
 }
 
 .lineartAddControls {
@@ -3871,9 +3924,15 @@
 
 .savedDeleteButton {
   min-height: 34px;
-  padding: 7px 10px;
+  width: 34px;
+  padding: 0;
   border-radius: 10px;
   box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 105, 80, 0.12);
+  color: var(--accent);
 }
 
 .savedContinueButton {
@@ -3885,8 +3944,9 @@
 
 .savedActions {
   display: flex;
+  align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
 }
 
