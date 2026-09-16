@@ -3419,7 +3419,7 @@ function App() {
                   見本と線画を見比べて、配色がずれていないか確認してください。
                 </p>
               ) : null}
-              <div className="paletteDock uploadPreviewDock">
+              <div className="uploadPreviewDock">
                 <Palette
                   value={uploadPreviewColor}
                   onChange={setUploadPreviewColor}
