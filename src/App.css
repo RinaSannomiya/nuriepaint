@@ -95,6 +95,7 @@
 .editingTopbar .topUndoButton,
 .editingTopbar .topZoomResetButton,
 .editingTopbar .topEyedropperButton,
+.editingTopbar .topBrushButton,
 .editingTopbar .saveTopButton,
 .editingTopbar .illustrationTopButton,
 .editingTopbar .mobileSaveHeaderButton,
@@ -298,8 +299,9 @@
 }
 
 .activeTool {
-  background: rgba(41, 162, 222, 0.12);
-  color: var(--accent-blue);
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 0 0 2px var(--accent) inset;
 }
 
 .layout {
@@ -2438,6 +2440,10 @@
   display: none;
 }
 
+.mobileBrushButton {
+  display: none;
+}
+
 .settingToggle {
   display: inline-flex;
   align-items: center;
@@ -4176,6 +4182,7 @@
   .app:has(.paletteDock) .editingTopbar .topUndoButton,
   .app:has(.paletteDock) .editingTopbar .topZoomResetButton,
   .app:has(.paletteDock) .editingTopbar .topEyedropperButton,
+  .app:has(.paletteDock) .editingTopbar .topBrushButton,
   .app:has(.paletteDock) .editingTopbar .illustrationTopButton,
   .app:has(.paletteDock) .editingTopbar .saveTopButton,
   .app:has(.paletteDock) .editingTopbar .mobileSaveHeaderButton,
@@ -4267,7 +4274,7 @@
 
   .app:has(.paletteDock) .mobilePaletteToolbar {
     display: none;
-    grid-template-columns: 44px 44px 44px;
+    grid-template-columns: 44px 44px 44px 44px;
     gap: 8px;
     align-items: center;
     position: absolute;
@@ -4284,7 +4291,8 @@
 
   .app:has(.paletteDock) .mobileUndoButton,
   .app:has(.paletteDock) .mobileRedoButton,
-  .app:has(.paletteDock) .mobileEyedropperButton {
+  .app:has(.paletteDock) .mobileEyedropperButton,
+  .app:has(.paletteDock) .mobileBrushButton {
     display: inline-flex;
     justify-content: center;
     align-items: center;
@@ -4487,7 +4495,8 @@
   .editingTopbarActions .logoutTopButton,
   .topUndoButton,
   .topZoomResetButton,
-  .topEyedropperButton {
+  .topEyedropperButton,
+  .topBrushButton {
     display: none;
   }
 
@@ -4501,7 +4510,8 @@
   .editingTopbar .galleryNavButton,
   .editingTopbar .topUndoButton,
   .editingTopbar .topZoomResetButton,
-  .editingTopbar .topEyedropperButton {
+  .editingTopbar .topEyedropperButton,
+  .editingTopbar .topBrushButton {
     display: none;
   }
 
@@ -4775,7 +4785,7 @@
 
   .mobilePaletteToolbar {
     display: grid;
-    grid-template-columns: minmax(92px, 1fr) 40px 40px 40px 40px;
+    grid-template-columns: minmax(72px, 1fr) 40px 40px 40px 40px 40px;
     gap: 6px;
     align-items: center;
     margin-bottom: 8px;
@@ -4826,6 +4836,13 @@
   }
 
   .mobileEyedropperButton {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 40px;
+  }
+
+  .mobileBrushButton {
     display: inline-flex;
     justify-content: center;
     align-items: center;
