@@ -2097,7 +2097,7 @@ function App() {
                       <span>画像ファイル</span>
                       <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(ev) => setLineartFile(ev.target.files?.[0] ?? null)} />
                     </label>
-                    <button className="btn primaryAction" type="submit">チェック画面へ</button>
+                    <button className="btn primaryAction uploadCheckButton" type="submit">チェック画面へ</button>
                   </form>
                   <section className="publicGrid" aria-label="アップロード済みぬりえ">
                     {uploadedLinearts.length ? uploadedLinearts.map((item) => (
@@ -2176,7 +2176,7 @@ function App() {
                     <p className="uploadCaution">
                       ※不適切だと判断されるものを公開した場合は運営から削除される可能性があります。
                     </p>
-                    <button className="btn primaryAction uploadSubmitButton" type="submit">チェック画面へ</button>
+                    <button className="btn primaryAction uploadSubmitButton uploadCheckButton" type="submit">チェック画面へ</button>
                   </form>
                   <section className="lineartSection" aria-labelledby="my-linearts-title">
                     <div className="lineartSectionHead">
@@ -2184,24 +2184,39 @@ function App() {
                       <p>公開すると、ほかの人があそぶに追加できるようになります。</p>
                     </div>
                     {myLineartSections.length ? (() => {
-                      const activeId = myLineartCategoryFilter && myLineartSections.some((s) => s.id === myLineartCategoryFilter)
-                        ? myLineartCategoryFilter
-                        : myLineartSections[0].id
-                      const active = myLineartSections.find((s) => s.id === activeId) ?? myLineartSections[0]
-                      return (
-                        <>
-                          <div className="galleryCategoryButtons" role="list" aria-label="自分のぬりえのカテゴリー">
+                      const active = myLineartSections.find((s) => s.id === myLineartCategoryFilter) ?? null
+                      if (!active) {
+                        return (
+                          <section className="homeGrid categoryGrid" aria-label="自分のぬりえのカテゴリー一覧">
                             {myLineartSections.map((section) => (
                               <button
-                                className={`galleryCategoryButton ${activeId === section.id ? 'activeGalleryCategory' : ''}`}
-                                type="button"
                                 key={section.id}
+                                type="button"
+                                className="homeCard categoryCard"
                                 onClick={() => setMyLineartCategoryFilter(section.id)}
                               >
-                                <span>{section.title}</span>
-                                <small>{section.items.length}</small>
+                                <div className="categoryThumb" aria-hidden="true">
+                                  {section.items.slice(0, 4).map((item) => (
+                                    <div className="thumbPaper" key={item.id}>
+                                      <img className="thumbImage" src={item.imageUrl} alt="" />
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="homeMeta">
+                                  <strong>{section.title}</strong>
+                                  <span>{section.items.length}枚</span>
+                                </div>
                               </button>
                             ))}
+                          </section>
+                        )
+                      }
+                      return (
+                        <>
+                          <div className="introActions lineartCategoryActiveHead">
+                            <button className="btn categoryBackButton" type="button" onClick={() => setMyLineartCategoryFilter(null)}>
+                              カテゴリー選択へ
+                            </button>
                           </div>
                           <div className="publicGrid" aria-label={`自分のぬりえ - ${active.title}`}>
                             {active.items.map((item, idx) => (
@@ -2249,24 +2264,39 @@ function App() {
                   <p>気に入ったぬりえを、あそぶの中に追加できます。</p>
                 </div>
                 {publicLineartSections.length ? (() => {
-                  const activeId = publicLineartCategoryFilter && publicLineartSections.some((s) => s.id === publicLineartCategoryFilter)
-                    ? publicLineartCategoryFilter
-                    : publicLineartSections[0].id
-                  const active = publicLineartSections.find((s) => s.id === activeId) ?? publicLineartSections[0]
-                  return (
-                    <>
-                      <div className="galleryCategoryButtons" role="list" aria-label="みんなのぬりえのカテゴリー">
+                  const active = publicLineartSections.find((s) => s.id === publicLineartCategoryFilter) ?? null
+                  if (!active) {
+                    return (
+                      <section className="homeGrid categoryGrid" aria-label="みんなのぬりえのカテゴリー一覧">
                         {publicLineartSections.map((section) => (
                           <button
-                            className={`galleryCategoryButton ${activeId === section.id ? 'activeGalleryCategory' : ''}`}
-                            type="button"
                             key={section.id}
+                            type="button"
+                            className="homeCard categoryCard"
                             onClick={() => setPublicLineartCategoryFilter(section.id)}
                           >
-                            <span>{section.title}</span>
-                            <small>{section.items.length}</small>
+                            <div className="categoryThumb" aria-hidden="true">
+                              {section.items.slice(0, 4).map((item) => (
+                                <div className="thumbPaper" key={item.id}>
+                                  <img className="thumbImage" src={item.imageUrl} alt="" />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="homeMeta">
+                              <strong>{section.title}</strong>
+                              <span>{section.items.length}枚</span>
+                            </div>
                           </button>
                         ))}
+                      </section>
+                    )
+                  }
+                  return (
+                    <>
+                      <div className="introActions lineartCategoryActiveHead">
+                        <button className="btn categoryBackButton" type="button" onClick={() => setPublicLineartCategoryFilter(null)}>
+                          カテゴリー選択へ
+                        </button>
                       </div>
                       <div className="publicGrid" aria-label={`みんなのぬりえ - ${active.title}`}>
                         {active.items.map((item, idx) => (
@@ -2383,13 +2413,13 @@ function App() {
                         <figcaption>
                           <strong>{item.title}</strong>
                           <span>作成: {formatDateDisplay(item.createdAt)}</span>
-                          {renderPublishToggle(item)}
-                          <div className="cardActionRow">
+                          <div className="cardActionRow savedCardActionRow">
+                            {renderPublishToggle(item)}
                             <button className="downloadLink" type="button" onClick={() => continueColoring(item)}>
                               続きから
                             </button>
-                            <button className="downloadLink savedDeleteLink" type="button" onClick={() => setDeleteTarget(item)}>
-                              削除
+                            <button className="downloadLink savedDeleteLink savedDeleteIconButton" type="button" onClick={() => setDeleteTarget(item)} aria-label="削除" title="削除">
+                              <TrashIcon />
                             </button>
                           </div>
                         </figcaption>
@@ -3218,8 +3248,8 @@ function App() {
                               <button className="btn savedContinueButton" type="button" onClick={() => continueColoring(item)}>
                                 続きからやる
                               </button>
-                              <button className="btn savedDeleteButton" type="button" onClick={() => setDeleteTarget(item)}>
-                                削除
+                              <button className="btn iconButton savedDeleteButton" type="button" onClick={() => setDeleteTarget(item)} aria-label="削除" title="削除">
+                                <TrashIcon />
                               </button>
                             </div>
                           </figcaption>
@@ -3352,15 +3382,13 @@ function App() {
                 <div className="modalSub">実際に塗って、線が途切れていないか確認してください。</div>
               </div>
               <div className="uploadPreviewHeadActions">
-                {!uploadPreviewShowRef ? (
-                  <button
-                    className="btn uploadPreviewResetButton"
-                    type="button"
-                    onClick={() => setUploadPreviewCommand((prev) => ({ seq: (prev?.seq ?? 0) + 1, type: 'reset' }))}
-                  >
-                    リセット
-                  </button>
-                ) : null}
+                <button
+                  className="btn btnDanger uploadPreviewResetButton"
+                  type="button"
+                  onClick={() => setUploadPreviewCommand((prev) => ({ seq: (prev?.seq ?? 0) + 1, type: 'reset' }))}
+                >
+                  リセット
+                </button>
                 {lineartIsLearning && uploadPreviewRefUrl ? (
                   <button className="btn uploadPreviewToggleButton" type="button" onClick={() => setUploadPreviewShowRef((value) => !value)}>
                     {uploadPreviewShowRef ? '線画にもどす' : '見本と比べる'}
@@ -3386,24 +3414,51 @@ function App() {
                   />
                 )}
               </div>
-              {!uploadPreviewShowRef ? (
-                <div className="uploadPreviewPaletteRow">
-                  <button
-                    className={`btn iconButton uploadPreviewBrushButton ${uploadPreviewBrush ? 'activeTool' : ''}`}
-                    type="button"
-                    onClick={() => setUploadPreviewBrush((value) => !value)}
-                    aria-label="ブラシ"
-                    title="ブラシ"
-                  >
-                    <BrushIcon />
-                  </button>
-                  <Palette value={uploadPreviewColor} onChange={setUploadPreviewColor} showSliders showSwatches swatches={customSwatches} />
-                </div>
-              ) : (
+              {uploadPreviewShowRef ? (
                 <p className="uploadPreviewHint">
                   見本と線画を見比べて、配色がずれていないか確認してください。
                 </p>
-              )}
+              ) : null}
+              <div className="paletteDock uploadPreviewDock">
+                <Palette
+                  value={uploadPreviewColor}
+                  onChange={setUploadPreviewColor}
+                  showSliders
+                  showSwatches
+                  swatches={customSwatches}
+                  actions={(
+                    <>
+                      <button
+                        className={`btn iconButton paletteActionButton uploadPreviewBrushButton ${uploadPreviewBrush ? 'activeTool' : ''}`}
+                        type="button"
+                        onClick={() => setUploadPreviewBrush((value) => !value)}
+                        aria-label="ブラシ"
+                        title="ブラシ"
+                      >
+                        <BrushIcon />
+                      </button>
+                      <button
+                        className="btn iconButton paletteActionButton"
+                        type="button"
+                        onClick={() => setUploadPreviewCommand((prev) => ({ seq: (prev?.seq ?? 0) + 1, type: 'undo' }))}
+                        aria-label="戻す"
+                        title="戻す"
+                      >
+                        <UndoIcon />
+                      </button>
+                      <button
+                        className="btn iconButton paletteActionButton"
+                        type="button"
+                        onClick={() => setUploadPreviewCommand((prev) => ({ seq: (prev?.seq ?? 0) + 1, type: 'redo' }))}
+                        aria-label="進む"
+                        title="進む"
+                      >
+                        <RedoIcon />
+                      </button>
+                    </>
+                  )}
+                />
+              </div>
               <div className="uploadAgreementList">
                 <label className="uploadAgreementItem">
                   <input type="checkbox" checked={uploadAgreeCopyright} onChange={(ev) => setUploadAgreeCopyright(ev.target.checked)} />
@@ -3982,6 +4037,17 @@ function BrushIcon() {
       <path d="M17.5 3.5c1.1-1.1 2.9-1.1 4 0 1.1 1.1 1.1 2.9 0 4l-7.7 7.7-4-4Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       <path d="M13.8 11.2c.5 1.6.1 3.4-1.2 4.7-1.6 1.6-5.4 2-7.8 2.1-.5 0-.9-.4-.8-.9.2-2.4.6-6.2 2.1-7.8 1.3-1.3 3.1-1.7 4.7-1.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       <circle cx="5.5" cy="18.5" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg className="buttonIcon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M9 7V4.8c0-.4.4-.8.9-.8h4.2c.5 0 .9.4.9.8V7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M6 7l.8 12.2c0 .9.8 1.6 1.7 1.6h6.9c.9 0 1.7-.7 1.7-1.6L18 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   )
 }
