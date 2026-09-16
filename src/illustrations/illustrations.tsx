@@ -1,16 +1,13 @@
 import type { PointerEvent, ReactNode } from 'react'
 import { FLAG_DATA } from './flagData'
-import { AnimalPage } from './svgs/AnimalPage'
 import { Apple } from './svgs/Apple'
 import { Blueberry } from './svgs/Blueberry'
-import { FLAG_RASTER_CROP, FlagPage } from './svgs/FlagPage'
 import { Grape } from './svgs/Grape'
 import { IceBar } from './svgs/IceBar'
 import { Lemon } from './svgs/Lemon'
 import { Orange } from './svgs/Orange'
 import { Peach } from './svgs/Peach'
 import { RasterLineArt, type RasterPaintCommand } from './svgs/RasterLineArt'
-import { SnackPage } from './svgs/SnackPage'
 import { Spinach } from './svgs/Spinach'
 
 export type IllustrationId = string
@@ -103,6 +100,8 @@ const FOOD_ILLUSTRATIONS: IllustrationDef[] = [
   },
 ]
 
+const FLAG_RASTER_CROP = { x: 96, y: 36, width: 1562, height: 1168 }
+
 const FLAG_ILLUSTRATIONS: IllustrationDef[] = FLAG_DATA.map((flag) => ({
   id: `flag-${flag.page}`,
   title: flag.country,
@@ -111,7 +110,14 @@ const FLAG_ILLUSTRATIONS: IllustrationDef[] = FLAG_DATA.map((flag) => ({
   referenceImage: `/lineart/flags-colored/flag-${flag.page}.png`,
   raster: true,
   rasterCrop: FLAG_RASTER_CROP,
-  node: (props) => <FlagPage {...props} page={flag.page} title={flag.country} />,
+  node: (props) => (
+    <RasterLineArt
+      {...props}
+      title={flag.country}
+      source={`/lineart/flags/flag-${flag.page}.png`}
+      crop={FLAG_RASTER_CROP}
+    />
+  ),
 }))
 
 const SNACK_DATA = [
@@ -151,7 +157,13 @@ const SNACK_ILLUSTRATIONS: IllustrationDef[] = SNACK_DATA.map((snack) => ({
   subtitle: snack.subtitle,
   thumbnailImage: `/lineart/snacks/thumbs/snack-${snack.page}.png`,
   raster: true,
-  node: (props) => <SnackPage {...props} page={snack.page} title={snack.title} />,
+  node: (props) => (
+    <RasterLineArt
+      {...props}
+      title={snack.title}
+      source={`/lineart/snacks/snack-${snack.page}.png`}
+    />
+  ),
 }))
 
 const ANIMAL_DATA = [
@@ -184,7 +196,13 @@ const ANIMAL_ILLUSTRATIONS: IllustrationDef[] = ANIMAL_DATA.map((animal) => ({
   thumbnailImage: `/lineart/animals/thumbs/animal-${animal.page}.png`,
   referenceImage: `/lineart/animals-colored/animal-${animal.page}.png`,
   raster: true,
-  node: (props) => <AnimalPage {...props} page={animal.page} title={animal.title} />,
+  node: (props) => (
+    <RasterLineArt
+      {...props}
+      title={animal.title}
+      source={`/lineart/animals/animal-${animal.page}.png`}
+    />
+  ),
 }))
 
 const CLOTHES_DATA = [
