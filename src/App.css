@@ -356,7 +356,7 @@
   max-width: min(520px, calc(100vw - 28px));
   transform: translateX(-50%);
   padding: 10px 14px;
-  border: 0;
+  border: 2px solid var(--accent);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 10px 34px rgba(66, 77, 97, 0.12);
