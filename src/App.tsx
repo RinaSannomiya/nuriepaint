@@ -2584,15 +2584,17 @@ function App() {
               <section className="featureBand lpImaginationBand" aria-labelledby="lp-imagination-title">
                 <div className="featureInner lpImaginationBandInner">
                   <h2 id="lp-imagination-title">Reveal the imagination within.</h2>
-                  <p>
-                    ぬりえペイントがきっかけで、いままで知らなかったお子さんの配色センスを知ることができるかもしれません。
-                  </p>
                   {lpTryRandomIllustration ? (
-                    <div className="lpTryPreviewFrame" aria-hidden="true">
+                    <button
+                      className="lpTryPreviewFrame"
+                      type="button"
+                      onClick={() => chooseIllustration(lpTryRandomIllustration.id)}
+                      aria-label={`${lpTryRandomIllustration.title}のぬりえをためしにやってみる`}
+                    >
                       <div className="lpMiniPaper lpTryPreviewPaper">
                         <IllustrationThumb illustration={lpTryRandomIllustration} />
                       </div>
-                    </div>
+                    </button>
                   ) : null}
                   <button
                     className="btn bandLink lpImaginationButton"
