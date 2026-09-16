@@ -13,6 +13,7 @@ export function Stage(props: {
   zoom: number
   onZoomChange: (zoom: number | ((value: number) => number)) => void
   eyedropper?: boolean
+  brush?: boolean
   restoreImage?: { url: string; seq: number } | null
   quizMode?: boolean
   quizAvailable?: boolean
@@ -220,6 +221,7 @@ export function Stage(props: {
             color: props.color,
             command: props.command,
             eyedropper: props.eyedropper,
+            brush: props.brush,
             onPickColor: props.onPickColor,
             restoreImage: props.restoreImage,
             onPaint: (regionId, ev) => {
