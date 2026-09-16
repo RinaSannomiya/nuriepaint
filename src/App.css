@@ -4694,7 +4694,7 @@
     height: max(220px, min(44dvh, calc(100dvh - var(--mobile-dock-clearance) - 118px)));
     min-height: 0;
     max-height: none;
-    padding: 0 0 20px;
+    padding: 22px 0 20px;
     align-items: start;
     justify-items: center;
     overflow-x: hidden;
