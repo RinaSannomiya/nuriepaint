@@ -1169,8 +1169,14 @@
   min-width: 260px;
   min-height: 66px;
   padding: 18px 40px;
-  color: #29a2de;
+  background: var(--accent-green);
+  color: var(--accent-yellow);
   font-size: 24px;
+}
+
+.lpImaginationButton:hover {
+  background: var(--accent-green-dark);
+  color: var(--accent-yellow);
 }
 
 .lpFlyingButterfly {
