@@ -2380,11 +2380,6 @@ function App() {
                     <div className="lpAccountBenefitText">
                       <h3>ぬりえを追加できる</h3>
                       <p>ぬりえをインストールすれば楽しみが無限大に。</p>
-                      {!authUser ? (
-                        <button className="btn lpAccountBenefitAddButton" type="button" onClick={openSignupPanel}>
-                          アカウント作成する
-                        </button>
-                      ) : null}
                     </div>
                   </section>
                 </div>
