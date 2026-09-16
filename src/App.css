@@ -4923,6 +4923,16 @@
     display: none;
   }
 
+  .paletteDock .paletteControls {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .paletteDock .swatches {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
   .paletteControls {
     gap: 12px;
   }
