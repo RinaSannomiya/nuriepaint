@@ -285,6 +285,7 @@ function App() {
   const [uploadPreviewShowRef, setUploadPreviewShowRef] = useState(false)
   const [uploadPreviewColor, setUploadPreviewColor] = useState('#EF6950')
   const [uploadPreviewCommand, setUploadPreviewCommand] = useState<RasterPaintCommand | null>(null)
+  const [uploadPreviewBrush, setUploadPreviewBrush] = useState(false)
   const [uploadAgreeCopyright, setUploadAgreeCopyright] = useState(false)
   const [uploadAgreePrivacy, setUploadAgreePrivacy] = useState(false)
   const [uploadAgreeDecency, setUploadAgreeDecency] = useState(false)
@@ -1420,6 +1421,7 @@ function App() {
     setUploadPreviewShowRef(false)
     setUploadPreviewColor('#EF6950')
     setUploadPreviewCommand(null)
+    setUploadPreviewBrush(false)
     setUploadAgreeCopyright(false)
     setUploadAgreePrivacy(false)
     setUploadAgreeDecency(false)
@@ -3307,44 +3309,62 @@ function App() {
       {uploadPreviewOpen && uploadPreviewUrl ? (
         <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="アップロード前の確認">
           <div className="modal uploadPreviewPanel">
-            <div className="modalHead">
+            <div className="modalHead uploadPreviewHead">
               <div>
                 <div className="modalTitle">アップロード前の確認</div>
                 <div className="modalSub">実際に塗って、線が途切れていないか確認してください。</div>
               </div>
-              <button className="btn" type="button" onClick={closeUploadPreview}>
-                閉じる
-              </button>
-            </div>
-            <div className="uploadPreviewBody">
-              {lineartIsLearning && uploadPreviewRefUrl ? (
-                <button className="btn uploadPreviewToggleButton" type="button" onClick={() => setUploadPreviewShowRef((value) => !value)}>
-                  {uploadPreviewShowRef ? '線画にもどす' : '見本と見比べる'}
-                </button>
-              ) : null}
-              <div className="uploadPreviewStage">
-                <RasterLineArt
-                  key={uploadPreviewShowRef ? 'ref' : 'line'}
-                  title={lineartTitle || 'アップロード確認用プレビュー'}
-                  source={uploadPreviewShowRef && uploadPreviewRefUrl ? uploadPreviewRefUrl : uploadPreviewUrl}
-                  color={uploadPreviewColor}
-                  command={uploadPreviewShowRef ? null : uploadPreviewCommand}
-                />
-              </div>
-              {!uploadPreviewShowRef ? (
-                <div className="uploadPreviewPaletteRow">
-                  <Palette value={uploadPreviewColor} onChange={setUploadPreviewColor} showSliders={false} showSwatches swatches={customSwatches} />
+              <div className="uploadPreviewHeadActions">
+                {!uploadPreviewShowRef ? (
                   <button
-                    className="btn"
+                    className="btn uploadPreviewResetButton"
                     type="button"
                     onClick={() => setUploadPreviewCommand((prev) => ({ seq: (prev?.seq ?? 0) + 1, type: 'reset' }))}
                   >
-                    塗りをリセット
+                    リセット
                   </button>
+                ) : null}
+                {lineartIsLearning && uploadPreviewRefUrl ? (
+                  <button className="btn uploadPreviewToggleButton" type="button" onClick={() => setUploadPreviewShowRef((value) => !value)}>
+                    {uploadPreviewShowRef ? '線画にもどす' : '見本と比べる'}
+                  </button>
+                ) : null}
+                <button className="btn uploadPreviewCloseButton" type="button" onClick={closeUploadPreview}>
+                  閉じる
+                </button>
+              </div>
+            </div>
+            <div className="uploadPreviewBody">
+              <div className="uploadPreviewStage">
+                {uploadPreviewShowRef && uploadPreviewRefUrl ? (
+                  <img className="uploadPreviewRefImage" src={uploadPreviewRefUrl} alt="見本" />
+                ) : (
+                  <RasterLineArt
+                    key="line"
+                    title={lineartTitle || 'アップロード確認用プレビュー'}
+                    source={uploadPreviewUrl}
+                    color={uploadPreviewColor}
+                    command={uploadPreviewCommand}
+                    brush={uploadPreviewBrush}
+                  />
+                )}
+              </div>
+              {!uploadPreviewShowRef ? (
+                <div className="uploadPreviewPaletteRow">
+                  <button
+                    className={`btn iconButton uploadPreviewBrushButton ${uploadPreviewBrush ? 'activeTool' : ''}`}
+                    type="button"
+                    onClick={() => setUploadPreviewBrush((value) => !value)}
+                    aria-label="ブラシ"
+                    title="ブラシ"
+                  >
+                    <BrushIcon />
+                  </button>
+                  <Palette value={uploadPreviewColor} onChange={setUploadPreviewColor} showSliders showSwatches swatches={customSwatches} />
                 </div>
               ) : (
                 <p className="uploadPreviewHint">
-                  ボタンをタップして、線画と見本の配色がずれていないか見比べてください。
+                  見本と線画を見比べて、配色がずれていないか確認してください。
                 </p>
               )}
               <div className="uploadAgreementList">
