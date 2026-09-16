@@ -1150,12 +1150,25 @@
   max-width: 1120px;
 }
 
+.lpTryPreviewFrame {
+  display: flex;
+  justify-content: center;
+  margin: 30px auto 6px;
+}
+
+.lpTryPreviewPaper {
+  width: 168px;
+  height: 168px;
+  border: 5px solid var(--accent-green);
+  box-sizing: border-box;
+}
+
 .lpImaginationButton {
-  min-width: 240px;
-  min-height: 58px;
-  padding: 16px 34px;
+  min-width: 260px;
+  min-height: 66px;
+  padding: 18px 40px;
   color: #29a2de;
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .lpFlyingButterfly {
@@ -1200,7 +1213,7 @@
   border: 0;
   border-radius: 32px;
   background: #fff;
-  padding: 28px 24px 30px;
+  padding: 34px 30px 36px;
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 18px;
@@ -1341,6 +1354,10 @@
   background: var(--accent-green);
 }
 
+.lpAccountBenefitText {
+  padding: 0 6px;
+}
+
 .lpAccountBenefitCard h3 {
   margin: 0;
   color: var(--ink);
@@ -1353,6 +1370,23 @@
   color: var(--muted);
   font-size: 15px;
   line-height: 1.8;
+}
+
+.lpAccountBenefitAddButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  min-height: 46px;
+  padding: 10px 22px;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: 15px;
+}
+
+.lpAccountBenefitAddButton:hover {
+  background: var(--accent-blue-dark);
+  color: #fff;
 }
 
 .lpAccountCreateButton {
@@ -1462,7 +1496,7 @@
 
 .footerLinks {
   max-width: 1120px;
-  margin: 0 auto;
+  margin: 18px auto 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1496,7 +1530,7 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  margin: 18px auto 0;
+  margin: 0 auto;
   font-size: 24px;
   font-weight: 700;
   line-height: 1;
@@ -4369,6 +4403,35 @@
   }
 }
 
+@media (orientation: portrait) and (min-width: 600px) and (max-width: 1200px) {
+  .homeHero {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .homeHero .heroText {
+    display: contents;
+  }
+
+  .homeHero .heroCatch {
+    order: 1;
+  }
+
+  .homeHero .heroLead {
+    order: 2;
+  }
+
+  .homeHero .heroArtwork {
+    order: 3;
+  }
+
+  .homeHero .heroPrimaryAction {
+    order: 4;
+    justify-self: center;
+    margin-top: 8px;
+  }
+}
+
 @media (max-width: 920px) {
   .app {
     --mobile-dock-clearance: 430px;
@@ -5136,6 +5199,23 @@
     padding-bottom: 0;
   }
 
+  .lpTryPreviewFrame {
+    margin: 22px auto 4px;
+  }
+
+  .lpTryPreviewPaper {
+    width: 132px;
+    height: 132px;
+    border-width: 4px;
+  }
+
+  .lpImaginationButton {
+    min-width: 0;
+    width: min(100%, 300px);
+    min-height: 58px;
+    font-size: 17px;
+  }
+
   .lpAccountSection {
     padding: 60px 30px 72px;
   }
@@ -5145,7 +5225,7 @@
   }
 
   .lpAccountIntro h2 {
-    font-size: 24px;
+    font-size: clamp(18px, 5.4vw, 24px);
   }
 
   .lpAccountBenefitGrid {
