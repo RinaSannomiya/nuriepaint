@@ -19,6 +19,7 @@ export function RasterLineArt(props: {
   onPickColor?: (color: string) => void
   restoreImage?: { url: string; seq: number } | null
   paintMask?: 'circle'
+  allowEdgeFill?: boolean
 }) {
   const source = props.source ?? SHEET
   const cropX = props.crop?.x
@@ -262,7 +263,7 @@ export function RasterLineArt(props: {
       }
     }
 
-    if ((props.paintMask !== 'circle' && touchesEdge) || pixels.length === 0) return
+    if ((props.paintMask !== 'circle' && touchesEdge && !props.allowEdgeFill) || pixels.length === 0) return
 
     const { r, g, b } = hexToRgb(props.color)
     state.history.push(new Uint8ClampedArray(state.fillData.data))
