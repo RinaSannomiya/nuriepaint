@@ -452,6 +452,7 @@ const PATTERN_ILLUSTRATIONS: IllustrationDef[] = PATTERN_DATA.map((item) => ({
       {...props}
       title={item.title}
       source={`/lineart/patterns/pattern-${item.page}.png`}
+      allowEdgeFill
     />
   ),
 }))
