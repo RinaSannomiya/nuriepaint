@@ -287,7 +287,7 @@ function clampZoom(value: number) {
 
 function ZoomInIcon() {
   return (
-    <svg className="buttonIcon" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="buttonIcon" viewBox="5 5 16 16" aria-hidden="true">
       <circle cx="12" cy="12" r="6" />
       <path d="M12 9v6" />
       <path d="M9 12h6" />
@@ -298,7 +298,7 @@ function ZoomInIcon() {
 
 function ZoomOutIcon() {
   return (
-    <svg className="buttonIcon" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="buttonIcon" viewBox="5 5 16 16" aria-hidden="true">
       <circle cx="12" cy="12" r="6" />
       <path d="M9 12h6" />
       <path d="m16.5 16.5 4 4" />
