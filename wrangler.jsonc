@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nurie-paint",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-11",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ringo-mikan-paint-db",
+      "database_id": "f2c1b8b6-9eda-41f8-bd9e-a15b9c2d5755"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARTWORKS",
+      "bucket_name": "ringo-mikan-paint-artworks"
+    }
+  ]
+}

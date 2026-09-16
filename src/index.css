@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap');
+
+:root {
+  color-scheme: light;
+  --bg0: #ffffff;
+  --bg1: #f6fafc;
+  --ink: #424d61;
+  --muted: rgba(66, 77, 97, 0.68);
+  --paper: #ffffff;
+  --paper2: #f6fafc;
+  --line: rgba(66, 77, 97, 0.1);
+  --line-strong: rgba(66, 77, 97, 0.18);
+  --shadow: rgba(66, 77, 97, 0.1);
+  --ring: rgba(239, 105, 80, 0.22);
+  --accent: #ef6950;
+  --accent-blue: #29a2de;
+  --accent-blue-dark: #1582b9;
+  --accent-green: #1cb5a5;
+  --accent-green-dark: #1c9f92;
+  --accent-yellow: #fdeb6a;
+  --accent-yellow-dark: #eace52;
+  --accent-orange: #feb61c;
+  --accent-red-dark: #d5533b;
+  --surface-grey: #c1d9e5;
+
+  font-family: 'Zen Maru Gothic', sans-serif;
+  line-height: 1.4;
+  font-weight: 400;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  font-family: 'Zen Maru Gothic', sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--ink);
+  background: #fff;
+}
+
+#root {
+  height: 100%;
+}
+
+::selection {
+  background: rgba(51, 120, 255, 0.18);
+}
+
+kbd {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 0.9em;
+  padding: 0.1em 0.45em;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
