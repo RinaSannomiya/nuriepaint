@@ -625,49 +625,57 @@
 
 .homePage .categoryCard,
 .playCatalogPage .categoryCard,
-.quizCatalogPage .categoryCard {
+.quizCatalogPage .categoryCard,
+.spreadToolPage .categoryCard {
   background: var(--category-card-color, #29a2de);
 }
 
 .homePage .categoryCard:nth-child(7n + 1),
 .playCatalogPage .categoryCard:nth-child(7n + 1),
-.quizCatalogPage .categoryCard:nth-child(7n + 1) {
+.quizCatalogPage .categoryCard:nth-child(7n + 1),
+.spreadToolPage .categoryCard:nth-child(7n + 1) {
   --category-card-color: #feb61c;
 }
 
 .homePage .categoryCard:nth-child(7n + 2),
 .playCatalogPage .categoryCard:nth-child(7n + 2),
-.quizCatalogPage .categoryCard:nth-child(7n + 2) {
+.quizCatalogPage .categoryCard:nth-child(7n + 2),
+.spreadToolPage .categoryCard:nth-child(7n + 2) {
   --category-card-color: #29a2de;
 }
 
 .homePage .categoryCard:nth-child(7n + 3),
 .playCatalogPage .categoryCard:nth-child(7n + 3),
-.quizCatalogPage .categoryCard:nth-child(7n + 3) {
+.quizCatalogPage .categoryCard:nth-child(7n + 3),
+.spreadToolPage .categoryCard:nth-child(7n + 3) {
   --category-card-color: #ef6950;
 }
 
 .homePage .categoryCard:nth-child(7n + 4),
 .playCatalogPage .categoryCard:nth-child(7n + 4),
-.quizCatalogPage .categoryCard:nth-child(7n + 4) {
+.quizCatalogPage .categoryCard:nth-child(7n + 4),
+.spreadToolPage .categoryCard:nth-child(7n + 4) {
   --category-card-color: #29a2de;
 }
 
 .homePage .categoryCard:nth-child(7n + 5),
 .playCatalogPage .categoryCard:nth-child(7n + 5),
-.quizCatalogPage .categoryCard:nth-child(7n + 5) {
+.quizCatalogPage .categoryCard:nth-child(7n + 5),
+.spreadToolPage .categoryCard:nth-child(7n + 5) {
   --category-card-color: #ef6950;
 }
 
 .homePage .categoryCard:nth-child(7n + 6),
 .playCatalogPage .categoryCard:nth-child(7n + 6),
-.quizCatalogPage .categoryCard:nth-child(7n + 6) {
+.quizCatalogPage .categoryCard:nth-child(7n + 6),
+.spreadToolPage .categoryCard:nth-child(7n + 6) {
   --category-card-color: #feb61c;
 }
 
 .homePage .categoryCard:nth-child(7n),
 .playCatalogPage .categoryCard:nth-child(7n),
-.quizCatalogPage .categoryCard:nth-child(7n) {
+.quizCatalogPage .categoryCard:nth-child(7n),
+.spreadToolPage .categoryCard:nth-child(7n) {
   --category-card-color: #ef6950;
 }
 
@@ -676,7 +684,9 @@
 .playCatalogPage .categoryCard .homeMeta strong,
 .playCatalogPage .categoryCard .homeMeta span,
 .quizCatalogPage .categoryCard .homeMeta strong,
-.quizCatalogPage .categoryCard .homeMeta span {
+.quizCatalogPage .categoryCard .homeMeta span,
+.spreadToolPage .categoryCard .homeMeta strong,
+.spreadToolPage .categoryCard .homeMeta span {
   color: #fff;
 }
 
@@ -1160,6 +1170,15 @@
   display: flex;
   justify-content: center;
   margin: 30px auto 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 150ms ease;
+}
+
+.lpTryPreviewFrame:hover {
+  transform: translateY(-3px);
 }
 
 .lpTryPreviewPaper {
@@ -2211,7 +2230,7 @@
   width: 100%;
   aspect-ratio: 1;
   border-radius: 28px;
-  background: #f6fafc;
+  background: #fff;
   object-fit: contain;
 }
 
@@ -2275,13 +2294,14 @@
 .savedCardActionRow {
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 6px;
 }
 
 .savedCardActionRow .publishToggle {
   flex: 0 1 auto;
   min-width: 0;
+  margin-right: auto;
   padding: 5px 10px 5px 6px;
   font-size: 12px;
   gap: 6px;
@@ -3930,7 +3950,7 @@
   width: 100%;
   aspect-ratio: 1;
   object-fit: contain;
-  background: #f6fafc;
+  background: #fff;
 }
 
 .savedCard figcaption {
@@ -4136,6 +4156,7 @@
   max-height: min(840px, 92vh);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  border: 3px solid var(--accent-blue);
 }
 
 .settingsBody {
@@ -4150,7 +4171,7 @@
 .settingsSection {
   border: 0;
   border-radius: 18px;
-  background: #f6fafc;
+  background: #fff;
   padding: 14px;
   display: grid;
   grid-template-columns: 1fr auto;
@@ -4178,7 +4199,7 @@
 
 .settingsPreviewSection {
   border-radius: 18px;
-  background: #f6fafc;
+  background: #fff;
   padding: 14px;
   display: grid;
   gap: 14px;
