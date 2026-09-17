@@ -1736,7 +1736,7 @@ input[type="checkbox"]:checked::after {
   font-size: 15px;
 }
 
-.uploadPanel input,
+.uploadPanel input:not([type="checkbox"]),
 .uploadPanel select {
   min-height: 44px;
   width: 100%;
@@ -1960,32 +1960,36 @@ input[type="checkbox"]:checked::after {
 
 .uploadPreviewDock .palette {
   background: #fff;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  grid-template-rows: auto auto auto;
-  gap: 8px 16px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto;
+  gap: 8px 14px;
   align-items: center;
 }
 
-.uploadPreviewDock .paletteLeft {
+.uploadPreviewDock .paletteControls {
   grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.uploadPreviewDock .paletteLeft {
+  grid-column: 2;
   grid-row: 1;
 }
 
 .uploadPreviewDock .paletteActions {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
-  justify-content: flex-end;
-}
-
-.uploadPreviewDock .paletteControls {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 38px);
+  grid-auto-rows: 38px;
+  gap: 6px;
+  justify-content: end;
 }
 
 .uploadPreviewDock .swatches {
   grid-column: 1 / -1;
-  grid-row: 3;
+  grid-row: 2;
   flex-wrap: wrap;
   justify-content: flex-start;
 }
