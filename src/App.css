@@ -1753,22 +1753,27 @@ input[type="checkbox"]:checked::after {
   padding-top: 11px;
 }
 
+.lineartLearningRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
 .lineartLearningToggle {
   min-height: 32px;
   display: flex !important;
   align-items: center;
   gap: 10px !important;
   padding: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .lineartLearningToggle span {
   font-size: 14px;
-}
-
-.lineartLearningRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  white-space: nowrap;
 }
 
 .learningHelp {
