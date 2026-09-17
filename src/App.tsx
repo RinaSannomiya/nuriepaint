@@ -289,6 +289,7 @@ function App() {
   const [uploadPreviewColor, setUploadPreviewColor] = useState('#EF6950')
   const [uploadPreviewCommand, setUploadPreviewCommand] = useState<RasterPaintCommand | null>(null)
   const [uploadPreviewBrush, setUploadPreviewBrush] = useState(false)
+  const [uploadPreviewEyedropper, setUploadPreviewEyedropper] = useState(false)
   const [uploadAgreeCopyright, setUploadAgreeCopyright] = useState(false)
   const [uploadAgreePrivacy, setUploadAgreePrivacy] = useState(false)
   const [uploadAgreeDecency, setUploadAgreeDecency] = useState(false)
@@ -1434,6 +1435,7 @@ function App() {
     setUploadPreviewColor('#EF6950')
     setUploadPreviewCommand(null)
     setUploadPreviewBrush(false)
+    setUploadPreviewEyedropper(false)
     setUploadAgreeCopyright(false)
     setUploadAgreePrivacy(false)
     setUploadAgreeDecency(false)
@@ -3436,6 +3438,11 @@ function App() {
                     color={uploadPreviewColor}
                     command={uploadPreviewCommand}
                     brush={uploadPreviewBrush}
+                    eyedropper={uploadPreviewEyedropper}
+                    onPickColor={(pickedColor) => {
+                      setUploadPreviewColor(pickedColor)
+                      setUploadPreviewEyedropper(false)
+                    }}
                   />
                 )}
               </div>
@@ -3456,11 +3463,20 @@ function App() {
                       <button
                         className={`btn iconButton paletteActionButton uploadPreviewBrushButton ${uploadPreviewBrush ? 'activeTool' : ''}`}
                         type="button"
-                        onClick={() => setUploadPreviewBrush((value) => !value)}
+                        onClick={() => { setUploadPreviewBrush((value) => !value); setUploadPreviewEyedropper(false) }}
                         aria-label="ブラシ"
                         title="ブラシ"
                       >
                         <BrushIcon />
+                      </button>
+                      <button
+                        className={`btn iconButton paletteActionButton ${uploadPreviewEyedropper ? 'activeTool' : ''}`}
+                        type="button"
+                        onClick={() => { setUploadPreviewEyedropper((value) => !value); setUploadPreviewBrush(false) }}
+                        aria-label="スポイト"
+                        title="スポイト"
+                      >
+                        <EyedropperIcon />
                       </button>
                       <button
                         className="btn iconButton paletteActionButton"
