@@ -3461,24 +3461,6 @@ function App() {
                   actions={(
                     <>
                       <button
-                        className={`btn iconButton paletteActionButton uploadPreviewBrushButton ${uploadPreviewBrush ? 'activeTool' : ''}`}
-                        type="button"
-                        onClick={() => { setUploadPreviewBrush((value) => !value); setUploadPreviewEyedropper(false) }}
-                        aria-label="ブラシ"
-                        title="ブラシ"
-                      >
-                        <BrushIcon />
-                      </button>
-                      <button
-                        className={`btn iconButton paletteActionButton ${uploadPreviewEyedropper ? 'activeTool' : ''}`}
-                        type="button"
-                        onClick={() => { setUploadPreviewEyedropper((value) => !value); setUploadPreviewBrush(false) }}
-                        aria-label="スポイト"
-                        title="スポイト"
-                      >
-                        <EyedropperIcon />
-                      </button>
-                      <button
                         className="btn iconButton paletteActionButton"
                         type="button"
                         onClick={() => setUploadPreviewCommand((prev) => ({ seq: (prev?.seq ?? 0) + 1, type: 'undo' }))}
@@ -3495,6 +3477,24 @@ function App() {
                         title="進む"
                       >
                         <RedoIcon />
+                      </button>
+                      <button
+                        className={`btn iconButton paletteActionButton uploadPreviewBrushButton ${uploadPreviewBrush ? 'activeTool' : ''}`}
+                        type="button"
+                        onClick={() => { setUploadPreviewBrush((value) => !value); setUploadPreviewEyedropper(false) }}
+                        aria-label="ブラシ"
+                        title="ブラシ"
+                      >
+                        <BrushIcon />
+                      </button>
+                      <button
+                        className={`btn iconButton paletteActionButton ${uploadPreviewEyedropper ? 'activeTool' : ''}`}
+                        type="button"
+                        onClick={() => { setUploadPreviewEyedropper((value) => !value); setUploadPreviewBrush(false) }}
+                        aria-label="スポイト"
+                        title="スポイト"
+                      >
+                        <EyedropperIcon />
                       </button>
                     </>
                   )}
