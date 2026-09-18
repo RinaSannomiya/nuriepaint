@@ -106,6 +106,7 @@ type ProfileMotif = {
 type ViewSnapshot = {
   selected: string | null
   selectedCategoryId: string | null
+  categoryReturnPage: 'play' | 'learn' | 'home'
   showPlayCatalog: boolean
   showQuizCatalog: boolean
   showCreatePage: boolean
@@ -205,6 +206,7 @@ function App() {
   const savedPageReturnRef = useRef<ViewSnapshot | null>(null)
   const authIconEditorRef = useRef<HTMLDivElement | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [gallerySidebarScrollToken, setGallerySidebarScrollToken] = useState(0)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [showPlayCatalog, setShowPlayCatalog] = useState(false)
   const [showQuizCatalog, setShowQuizCatalog] = useState(false)
@@ -679,9 +681,21 @@ function App() {
     })
   }, [selected, selectedCategoryId, showPlayCatalog, showQuizCatalog, showCreatePage, showSpreadPage, showGalleryPage, showSavedPage])
 
-  function chooseIllustration(id: string) {
+  function chooseIllustration(id: string, opts?: { scrollSidebarToTop?: boolean }) {
     const category = playCategories.find((it) => it.illustrationIds.includes(id))
-    if (category) setSelectedCategoryId(category.id)
+    if (category) {
+      if (category.id !== selectedCategoryId) {
+        setCategoryReturnPage(showQuizCatalog ? 'learn' : 'play')
+      }
+      setSelectedCategoryId(category.id)
+    }
+    // あそぶのカテゴリー一覧やLPなど、サイドバーの外からこのイラストを選んだときは
+    // 左カラムのイラスト一覧もそのイラストが一番上に来るようスクロールする。
+    // すでに編集中でサイドバー自体をクリックした場合(SidebarのonSelect経由)は
+    // opts.scrollSidebarToTop = false が渡ってくるのでスクロールしない。
+    if (opts?.scrollSidebarToTop !== false) {
+      setGallerySidebarScrollToken((token) => token + 1)
+    }
     const nextQuizConfig = quizConfigs[id]
     const nextQuiz = Boolean(quizSelectionArmed && nextQuizConfig)
     setShowPlayCatalog(false)
@@ -846,6 +860,7 @@ function App() {
     }
     setSelected(snapshot.selected)
     setSelectedCategoryId(snapshot.selectedCategoryId)
+    setCategoryReturnPage(snapshot.categoryReturnPage)
     setShowPlayCatalog(snapshot.showPlayCatalog)
     setShowQuizCatalog(snapshot.showQuizCatalog)
     setShowCreatePage(snapshot.showCreatePage)
@@ -861,6 +876,7 @@ function App() {
     return {
       selected,
       selectedCategoryId,
+      categoryReturnPage,
       showPlayCatalog,
       showQuizCatalog,
       showCreatePage,
@@ -1576,10 +1592,14 @@ function App() {
       return
     }
     const category = playCategories.find((it) => it.illustrationIds.includes(item.illustrationId))
-    if (category) setSelectedCategoryId(category.id)
+    if (category) {
+      setSelectedCategoryId(category.id)
+      setCategoryReturnPage('play')
+    }
     const restoreSeq = Date.now()
     setRestoreImage(null)
     setSelected(item.illustrationId)
+    setGallerySidebarScrollToken((token) => token + 1)
     setArtZoom(1)
     setEyedropper(false)
     setBrush(false)
@@ -1925,6 +1945,14 @@ function App() {
           )}
           {selected ? (
             <>
+              {authUser ? (
+                <button className="navLink savedNavButton editingSavedNavButton" type="button" onClick={() => openSavedPage({ rememberReturn: true })}>
+                  マイギャラリー
+                </button>
+              ) : null}
+              <button className="navLink editingSettingsNavButton" type="button" onClick={() => setSettingsOpen(true)}>
+                設定
+              </button>
               {quizMode ? <span className="topQuizModeBadge">クイズモード</span> : null}
               <button className="btn illustrationTopButton" type="button" onClick={() => setSelected(null)}>
                 ぬりえを選ぶ
@@ -1966,7 +1994,7 @@ function App() {
         <>
           <div className="layout">
             <aside className="rail">
-              <Sidebar selected={selected} illustrations={displayedCategoryIllustrations.length ? displayedCategoryIllustrations : undefined} learnedIds={learnedQuizIds} onSelect={chooseIllustration} onBackToCategories={backToCategorySelection} />
+              <Sidebar selected={selected} illustrations={displayedCategoryIllustrations.length ? displayedCategoryIllustrations : undefined} learnedIds={learnedQuizIds} onSelect={(id) => chooseIllustration(id, { scrollSidebarToTop: false })} onBackToCategories={backToCategorySelection} scrollToTopToken={gallerySidebarScrollToken} />
             </aside>
 
             <main className="main">
