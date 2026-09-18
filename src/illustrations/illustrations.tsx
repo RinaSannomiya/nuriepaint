@@ -102,23 +102,26 @@ const FOOD_ILLUSTRATIONS: IllustrationDef[] = [
 
 const FLAG_RASTER_CROP = { x: 96, y: 36, width: 1562, height: 1168 }
 
-const FLAG_ILLUSTRATIONS: IllustrationDef[] = FLAG_DATA.map((flag) => ({
-  id: `flag-${flag.page}`,
-  title: flag.country,
-  subtitle: flag.code.toUpperCase(),
-  thumbnailImage: `/lineart/flags/flag-${flag.page}.png`,
-  referenceImage: `/lineart/flags-colored/flag-${flag.page}.png`,
-  raster: true,
-  rasterCrop: FLAG_RASTER_CROP,
-  node: (props) => (
-    <RasterLineArt
-      {...props}
-      title={flag.country}
-      source={`/lineart/flags/flag-${flag.page}.png`}
-      crop={FLAG_RASTER_CROP}
-    />
-  ),
-}))
+const FLAG_ILLUSTRATIONS: IllustrationDef[] = FLAG_DATA.map((flag) => {
+  const isNepal = flag.page === '116'
+  return {
+    id: `flag-${flag.page}`,
+    title: flag.country,
+    subtitle: flag.code.toUpperCase(),
+    thumbnailImage: `/lineart/flags/flag-${flag.page}.png`,
+    referenceImage: `/lineart/flags-colored/flag-${flag.page}.png`,
+    raster: true,
+    rasterCrop: isNepal ? undefined : FLAG_RASTER_CROP,
+    node: (props) => (
+      <RasterLineArt
+        {...props}
+        title={flag.country}
+        source={`/lineart/flags/flag-${flag.page}.png`}
+        crop={isNepal ? undefined : FLAG_RASTER_CROP}
+      />
+    ),
+  }
+})
 
 const SNACK_DATA = [
   { page: '01', title: 'ドーナツ', subtitle: 'Donut' },
