@@ -527,7 +527,7 @@ export const ILLUSTRATIONS: IllustrationDef[] = [
 export const ILLUSTRATION_CATEGORIES: IllustrationCategory[] = [
   {
     id: 'ringo-mikan-lemon',
-    title: 'りんごみかんレモン',
+    title: 'フルーツ・やさい',
     subtitle: '',
     illustrationIds: ['apple', 'orange', 'lemon', 'spinach', 'iceBar', 'blueberry', 'grape', 'peach'],
   },
