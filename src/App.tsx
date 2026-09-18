@@ -3006,10 +3006,13 @@ function App() {
             <div className="authBody">
               {authMode === 'signupSent' ? (
                 <section className="signupCompletePanel verifyPanel" aria-label="確認メールを送りました">
-                  <h2>確認メールを送りました</h2>
+                  <h2>
+                    確認メールを<br className="spBreak" />送りました
+                  </h2>
                   {authSentFromSignin ? <p>メールアドレスの確認がまだ完了していません。</p> : null}
                   <p>
-                    <strong className="verifyEmail">{authEmail}</strong> に確認メールを送りました。
+                    <strong className="verifyEmail">{authEmail}</strong>
+                    <span className="pcSpace">{' '}</span>に<br className="spBreak" />確認メールを送りました。
                     <br />
                     メールに書かれているリンクを開くと、アカウント作成が完了します。
                   </p>

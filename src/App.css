@@ -3271,6 +3271,21 @@ input[type="checkbox"]:checked::after {
   text-align: left;
 }
 
+/* 「確認メールを送りました」画面の改行。スマホ（モバイル）だけ改行し、PC・タブレットは今までどおり */
+.signupCompletePanel .spBreak {
+  display: none;
+}
+
+@media (max-width: 920px) {
+  .signupCompletePanel .spBreak {
+    display: inline;
+  }
+
+  .signupCompletePanel .pcSpace {
+    display: none;
+  }
+}
+
 .accountNameField {
   gap: 8px;
   font-size: 14px;
@@ -6085,5 +6100,17 @@ input[type="checkbox"]:checked::after {
     .mobileMenuLink {
       min-height: 48px;
     }
+  }
+}
+
+/* スマホ・タブレットで入力欄をタップしたときの自動ズーム防止
+   （iOS は文字サイズが16px未満の入力欄にフォーカスすると画面を拡大するため、16px以上にする） */
+@media (pointer: coarse) {
+  .field:not(.accountNameField) input,
+  .uploadPanel input:not([type="checkbox"]):not([type="file"]),
+  .uploadPanel select,
+  .lineartAddControls select,
+  .lineartCategoryChanger select {
+    font-size: 16px;
   }
 }
