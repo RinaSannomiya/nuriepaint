@@ -1926,7 +1926,7 @@ input[type="checkbox"]:checked::after {
   padding: 14px;
   display: grid;
   place-items: center;
-  height: min(48vh, 440px);
+  height: min(56vh, 520px);
   overflow: hidden;
 }
 
@@ -1955,15 +1955,16 @@ input[type="checkbox"]:checked::after {
 .uploadPreviewDock {
   border-radius: 22px;
   background: #fff;
-  padding: 12px;
+  padding: 10px 12px;
 }
 
 .uploadPreviewDock .palette {
   background: #fff;
   grid-template-columns: minmax(0, 1fr) auto auto;
   grid-template-rows: auto auto;
-  gap: 8px 14px;
+  gap: 6px 10px;
   align-items: center;
+  padding: 4px;
 }
 
 .uploadPreviewDock .paletteControls {
@@ -1977,6 +1978,10 @@ input[type="checkbox"]:checked::after {
   grid-row: 1;
 }
 
+.uploadPreviewDock .colorLabel {
+  display: none;
+}
+
 .uploadPreviewDock .paletteActions {
   grid-column: 3;
   grid-row: 1;
@@ -1985,6 +1990,7 @@ input[type="checkbox"]:checked::after {
   grid-auto-rows: 38px;
   gap: 6px;
   justify-content: end;
+  margin-left: -4px;
 }
 
 .uploadPreviewDock .swatches {
@@ -1992,6 +1998,7 @@ input[type="checkbox"]:checked::after {
   grid-row: 2;
   flex-wrap: wrap;
   justify-content: flex-start;
+  padding: 2px 0 0;
 }
 
 .uploadPreviewBrushButton {
