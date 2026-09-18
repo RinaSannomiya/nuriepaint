@@ -1,5 +1,5 @@
 import './App.css'
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react'
 import { DEFAULT_SWATCHES, Palette } from './components/Palette'
 import { IllustrationThumb } from './components/IllustrationThumb'
 import { Sidebar } from './components/Sidebar'
@@ -246,6 +246,11 @@ function App() {
   const [verifyError] = useState<string | null>(verifyRedirect?.error ?? null)
   const [verifyResendBusy, setVerifyResendBusy] = useState(false)
   const [authSentFromSignin, setAuthSentFromSignin] = useState(false)
+  // パスワード再設定メールのリンクから戻ってきたときの、再設定用の合言葉（トークン）
+  const [resetToken] = useState<string | null>(verifyRedirect?.token ?? null)
+  const [resetNewPassword, setResetNewPassword] = useState('')
+  const [resetNewPasswordConfirm, setResetNewPasswordConfirm] = useState('')
+  const [resetMailBusy, setResetMailBusy] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(true)
   const [authName, setAuthName] = useState('')
@@ -255,10 +260,8 @@ function App() {
   const [accountEmailValue, setAccountEmailValue] = useState('')
   const [accountEmailMessage, setAccountEmailMessage] = useState('')
   const [accountPasswordOpen, setAccountPasswordOpen] = useState(false)
-  const [accountPasswordCurrent, setAccountPasswordCurrent] = useState('')
-  const [accountPasswordNew, setAccountPasswordNew] = useState('')
-  const [accountPasswordConfirm, setAccountPasswordConfirm] = useState('')
   const [accountPasswordMessage, setAccountPasswordMessage] = useState('')
+  const [accountPasswordSent, setAccountPasswordSent] = useState(false)
   const [accountDeleteConfirmOpen, setAccountDeleteConfirmOpen] = useState(false)
   const [authMotifId, setAuthMotifId] = useState(PROFILE_MOTIFS[0].id)
   const [authIconColor, setAuthIconColor] = useState(PROFILE_ICON_COLORS[0])
@@ -1080,6 +1083,19 @@ function App() {
 
   async function submitAuth(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault()
+    // パスワード再設定まわりの画面は、Enter キーや送信ボタンでそれぞれの処理に進む
+    if (authMode === 'forgot') {
+      await sendPasswordResetFromForm()
+      return
+    }
+    if (authMode === 'resetPassword') {
+      await submitNewPassword()
+      return
+    }
+    if (authMode === 'verifyError') {
+      await resendVerificationEmail()
+      return
+    }
     setStatus('処理中...')
     if (authMode === 'profile' || authMode === 'signupProfile') {
       const isSignupProfile = authMode === 'signupProfile'
@@ -1709,10 +1725,8 @@ function App() {
     setAccountEmailValue(authUser.email)
     setAccountEmailMessage('')
     setAccountPasswordOpen(false)
-    setAccountPasswordCurrent('')
-    setAccountPasswordNew('')
-    setAccountPasswordConfirm('')
     setAccountPasswordMessage('')
+    setAccountPasswordSent(false)
     setAccountDeleteConfirmOpen(false)
     setSignupPasswordConfirm('')
     setSignupConsent(false)
@@ -1816,35 +1830,92 @@ function App() {
     setAccountEmailMessage(`${nextEmail} に確認メールを送りました。メールのリンクを開くと、メールアドレスが変更されます。`)
   }
 
-  async function submitAccountPasswordReset() {
-    if (accountPasswordNew.length < 8) {
-      setAccountPasswordMessage('新しいパスワードは8文字以上にしてください。')
-      return
-    }
-    if (accountPasswordNew !== accountPasswordConfirm) {
-      setAccountPasswordMessage('新しいパスワードが一致していません。')
-      return
-    }
-    setAccountPasswordMessage('変更中...')
-    const res = await fetch('/api/auth/change-password', {
+  // パスワード再設定メールを送る（成功したかどうかを返す）。届き先が登録されていなくても画面上は同じ結果にする。
+  async function requestPasswordResetEmail(email: string) {
+    const res = await fetch('/api/auth/request-password-reset', {
       method: 'POST',
       credentials: 'include',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        currentPassword: accountPasswordCurrent,
-        newPassword: accountPasswordNew,
-        revokeOtherSessions: false,
-      }),
-    })
-    if (!res.ok || !isJsonResponse(res)) {
-      setAccountPasswordMessage('現在のパスワードを確認してください。')
+      // 戻り先は src/auth.ts の RESET_PASSWORD_CALLBACK と対応
+      body: JSON.stringify({ email, redirectTo: '/?reset=1' }),
+    }).catch(() => null)
+    return Boolean(res?.ok)
+  }
+
+  // ログイン画面の「パスワードを忘れた方」から
+  async function sendPasswordResetFromForm() {
+    const email = authEmail.trim()
+    if (!email || resetMailBusy) return
+    // 続けて何度も送らないよう、しばらくボタンを押せなくする
+    setResetMailBusy(true)
+    window.setTimeout(() => setResetMailBusy(false), 30000)
+    setStatus('送信中...')
+    const ok = await requestPasswordResetEmail(email)
+    if (!ok) {
+      setResetMailBusy(false)
+      setStatus('送信できませんでした。しばらくしてからもう一度お試しください。')
       return
     }
-    setAccountPasswordCurrent('')
-    setAccountPasswordNew('')
-    setAccountPasswordConfirm('')
-    setAccountPasswordOpen(false)
-    setAccountPasswordMessage('パスワードを変更しました。')
+    setAuthEmail(email)
+    setStatus(authMode === 'forgotSent' ? '再設定メールをもう一度送りました。' : '')
+    setAuthMode('forgotSent')
+  }
+
+  // ログイン中のアカウント画面の「パスワードを変更する」から（登録メールアドレスに送る）
+  async function sendAccountPasswordResetEmail() {
+    const email = authUser?.email
+    if (!email || resetMailBusy) return
+    setResetMailBusy(true)
+    window.setTimeout(() => setResetMailBusy(false), 30000)
+    setAccountPasswordMessage('送信中...')
+    const ok = await requestPasswordResetEmail(email)
+    if (!ok) {
+      setResetMailBusy(false)
+      setAccountPasswordMessage('送信できませんでした。しばらくしてからもう一度お試しください。')
+      return
+    }
+    setAccountPasswordMessage('')
+    setAccountPasswordSent(true)
+  }
+
+  // メールのリンクから開いた「新しいパスワードを設定」画面の送信
+  async function submitNewPassword() {
+    if (!resetToken) {
+      setAuthMode('resetError')
+      return
+    }
+    if (resetNewPassword.length < 8) {
+      setStatus('パスワードは8文字以上にしてください。')
+      return
+    }
+    if (resetNewPassword !== resetNewPasswordConfirm) {
+      setStatus('確認用パスワードが一致していません。')
+      return
+    }
+    setStatus('変更中...')
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ newPassword: resetNewPassword, token: resetToken }),
+    }).catch(() => null)
+    if (!res || !res.ok) {
+      const body = (await res?.json().catch(() => null)) as { code?: string } | null
+      if (body?.code === 'INVALID_TOKEN') {
+        setAuthMode('resetError')
+        setStatus('')
+        return
+      }
+      setStatus('変更できませんでした。しばらくしてからもう一度お試しください。')
+      return
+    }
+    setResetNewPassword('')
+    setResetNewPasswordConfirm('')
+    // 再設定するとログイン状態が解除されるので、画面側の状態も合わせる
+    await refreshMe()
+    setAuthPassword('')
+    setAuthMode('signin')
+    setStatus('パスワードを変更しました。新しいパスワードでログインしてください。')
   }
 
   function runMobileMenuAction(action: () => void) {
@@ -2988,6 +3059,8 @@ function App() {
                           ? 'リンクを開けませんでした'
                           : authMode === 'emailChanged'
                             ? 'メールアドレスを変更しました'
+                            : authMode === 'forgot' || authMode === 'forgotSent' || authMode === 'resetPassword' || authMode === 'resetError'
+                              ? 'パスワードの再設定'
                     : authMode === 'signupProfile'
                       ? 'プロフィール登録'
                       : authMode === 'signupComplete'
@@ -3057,6 +3130,125 @@ function App() {
                   </label>
                   <button className="btn primaryAction" type="button" onClick={resendVerificationEmail} disabled={verifyResendBusy || !authEmail.trim()}>
                     確認メールを送る
+                  </button>
+                  <button
+                    className="linkBtn"
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signin')
+                      setStatus('')
+                    }}
+                  >
+                    ログイン画面へ
+                  </button>
+                </section>
+              ) : null}
+              {authMode === 'forgot' ? (
+                <section className="signupCompletePanel verifyPanel" aria-label="パスワードの再設定">
+                  <h2>
+                    パスワードの<br className="spBreak" />再設定
+                  </h2>
+                  <p>
+                    登録したメールアドレスを<br className="spBreak" />入力してください。
+                    <br />
+                    パスワード再設定用の<br className="spBreak" />メールを送ります。
+                  </p>
+                  <label className="field verifyEmailField">
+                    <span>メール</span>
+                    <input value={authEmail} onChange={(ev) => setAuthEmail(ev.target.value)} type="email" autoComplete="email" required />
+                  </label>
+                  <button className="btn primaryAction" type="submit" disabled={resetMailBusy}>
+                    再設定メールを送る
+                  </button>
+                  <button
+                    className="linkBtn"
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signin')
+                      setStatus('')
+                    }}
+                  >
+                    ログイン画面へ
+                  </button>
+                </section>
+              ) : null}
+              {authMode === 'forgotSent' ? (
+                <section className="signupCompletePanel verifyPanel" aria-label="再設定メールを送りました">
+                  <h2>
+                    再設定メールを<br className="spBreak" />送りました
+                  </h2>
+                  <p>
+                    <strong className="verifyEmail">{authEmail}</strong>
+                    <span className="pcSpace">{' '}</span>に<br className="spBreak" />パスワード再設定用の<br className="spBreak" />メールを送りました。
+                    <br />
+                    メールのリンクを開いて、新しいパスワードを設定してください。
+                  </p>
+                  <p className="verifyHint">メールが届かないときは、迷惑メールフォルダも確認してください。登録されていないメールアドレスには届きません。リンクの有効期限は1時間です。</p>
+                  <button className="btn" type="button" onClick={sendPasswordResetFromForm} disabled={resetMailBusy}>
+                    再設定メールをもう一度送る
+                  </button>
+                  <button
+                    className="linkBtn"
+                    type="button"
+                    onClick={() => {
+                      setResetMailBusy(false)
+                      setAuthMode('forgot')
+                      setStatus('')
+                    }}
+                  >
+                    メールアドレスを入力し直す
+                  </button>
+                  <button
+                    className="linkBtn"
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signin')
+                      setStatus('')
+                    }}
+                  >
+                    ログイン画面へ
+                  </button>
+                </section>
+              ) : null}
+              {authMode === 'resetPassword' ? (
+                <section className="signupCompletePanel verifyPanel" aria-label="新しいパスワードを設定">
+                  <h2>
+                    新しい<br className="spBreak" />パスワードを設定
+                  </h2>
+                  <p>
+                    新しいパスワードを<br className="spBreak" />2回入力してください。
+                  </p>
+                  <label className="field verifyEmailField">
+                    <span>新しいパスワード</span>
+                    <PasswordInput value={resetNewPassword} onChange={(ev) => setResetNewPassword(ev.target.value)} autoComplete="new-password" minLength={8} required />
+                  </label>
+                  <label className="field verifyEmailField">
+                    <span>新しいパスワード（確認）</span>
+                    <PasswordInput value={resetNewPasswordConfirm} onChange={(ev) => setResetNewPasswordConfirm(ev.target.value)} autoComplete="new-password" minLength={8} required />
+                  </label>
+                  <p className="verifyHint">8文字以上で入力してください。</p>
+                  <button className="btn primaryAction" type="submit">
+                    パスワードを変更する
+                  </button>
+                </section>
+              ) : null}
+              {authMode === 'resetError' ? (
+                <section className="signupCompletePanel verifyPanel" aria-label="リンクを開けませんでした">
+                  <h2>
+                    リンクを<br className="spBreak" />開けません
+                  </h2>
+                  <p>
+                    期限が切れているか、<br className="spBreak" />すでに使われたリンクです。
+                  </p>
+                  <button
+                    className="btn primaryAction"
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('forgot')
+                      setStatus('')
+                    }}
+                  >
+                    再設定メールをもう一度送る
                   </button>
                   <button
                     className="linkBtn"
@@ -3151,34 +3343,20 @@ function App() {
                       onClick={() => {
                         setAccountPasswordOpen((open) => !open)
                         setAccountPasswordMessage('')
+                        setAccountPasswordSent(false)
                       }}
                     >
                       パスワードを変更する
                     </button>
                     {accountPasswordOpen ? (
-                      <div
-                        className="accountInlineForm accountPasswordForm"
-                        onKeyDown={(ev) => {
-                          if (ev.key === 'Enter') {
-                            ev.preventDefault()
-                            void submitAccountPasswordReset()
-                          }
-                        }}
-                      >
-                        <label className="field">
-                          <span>現在のパスワード</span>
-                          <input value={accountPasswordCurrent} onChange={(ev) => setAccountPasswordCurrent(ev.target.value)} type="password" autoComplete="current-password" required />
-                        </label>
-                        <label className="field">
-                          <span>新しいパスワード</span>
-                          <input value={accountPasswordNew} onChange={(ev) => setAccountPasswordNew(ev.target.value)} type="password" autoComplete="new-password" minLength={8} required />
-                        </label>
-                        <label className="field">
-                          <span>新しいパスワード（確認）</span>
-                          <input value={accountPasswordConfirm} onChange={(ev) => setAccountPasswordConfirm(ev.target.value)} type="password" autoComplete="new-password" minLength={8} required />
-                        </label>
-                        <button className="btn primaryAction" type="button" onClick={submitAccountPasswordReset}>
-                          変更する
+                      <div className="accountInlineForm accountPasswordForm">
+                        {accountPasswordSent ? (
+                          <p className="accountSettingMessage">{authUser?.email} に再設定用のメールを送りました。メールのリンクを開いて、新しいパスワードを入力してください。</p>
+                        ) : (
+                          <p className="accountSettingMessage">登録しているメールアドレスに、パスワード再設定用のメールを送ります。</p>
+                        )}
+                        <button className="btn primaryAction" type="button" onClick={sendAccountPasswordResetEmail} disabled={resetMailBusy}>
+                          再設定メールを送る
                         </button>
                       </div>
                     ) : null}
@@ -3309,10 +3487,9 @@ function App() {
                   </label>
                   <label className="field">
                     <span>パスワード</span>
-                    <input
+                    <PasswordInput
                       value={authPassword}
                       onChange={(ev) => setAuthPassword(ev.target.value)}
-                      type="password"
                       autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
                       minLength={8}
                       required
@@ -3322,10 +3499,9 @@ function App() {
                     <>
                       <label className="field">
                         <span>パスワード（確認）</span>
-                        <input
+                        <PasswordInput
                           value={signupPasswordConfirm}
                           onChange={(ev) => setSignupPasswordConfirm(ev.target.value)}
-                          type="password"
                           autoComplete="new-password"
                           minLength={8}
                           required
@@ -3365,6 +3541,18 @@ function App() {
               {(['signin', 'signup', 'signupProfile'] as string[]).includes(authMode) || (authMode === 'profile' && accountProfileEditing) ? (
                 <button className={`btn ${authMode === 'signin' ? 'loginTopButton loginSubmitButton' : authMode === 'signup' ? 'signupTopButton signupSubmitButton' : ''}`} type="submit">
                   {authMode === 'signup' ? '作成する' : authMode === 'profile' || authMode === 'signupProfile' ? '保存する' : 'ログインする'}
+                </button>
+              ) : null}
+              {authMode === 'signin' ? (
+                <button
+                  className="linkBtn"
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('forgot')
+                    setStatus('')
+                  }}
+                >
+                  パスワードを忘れた方
                 </button>
               ) : null}
               {(authMode === 'signin' || authMode === 'signup') ? (
@@ -3809,19 +3997,29 @@ type AuthMode =
   | 'signupComplete'
   | 'verifyError'
   | 'emailChanged'
+  | 'forgot'
+  | 'forgotSent'
+  | 'resetPassword'
+  | 'resetError'
   | 'profile'
 
 // 認証メールのリンクを開いたあとに戻ってくる URL（?verify=done / ?verify=emailchanged、失敗時は &error=...）を読む。
 // サーバー側（src/auth.ts）が付ける callbackURL と対応している。
-function readVerifyRedirect(): { mode: AuthMode; error: string | null } | null {
+function readVerifyRedirect(): { mode: AuthMode; error: string | null; token: string | null } | null {
   if (typeof window === 'undefined') return null
   const params = new URLSearchParams(window.location.search)
+  const error = params.get('error')
+  // パスワード再設定メールのリンク（?reset=1&token=... / 失敗時は &error=INVALID_TOKEN）
+  if (params.get('reset')) {
+    const token = params.get('token')
+    if (error || !token) return { mode: 'resetError', error: error ?? 'INVALID_TOKEN', token: null }
+    return { mode: 'resetPassword', error: null, token }
+  }
   const kind = params.get('verify')
   if (!kind) return null
-  const error = params.get('error')
-  if (error) return { mode: 'verifyError', error }
-  if (kind === 'done') return { mode: 'signupVerified', error: null }
-  if (kind === 'emailchanged') return { mode: 'emailChanged', error: null }
+  if (error) return { mode: 'verifyError', error, token: null }
+  if (kind === 'done') return { mode: 'signupVerified', error: null, token: null }
+  if (kind === 'emailchanged') return { mode: 'emailChanged', error: null, token: null }
   return null
 }
 
@@ -3979,6 +4177,33 @@ function buildLearnCategories(categories: IllustrationCategory[], linearts: Libr
 
 function getProfileMotifImage(motifId: string) {
   return PROFILE_MOTIFS.find((motif) => motif.id === motifId)?.imageUrl ?? `/profile-motifs/${motifId}.png`
+}
+
+// パスワード入力欄。右端の目のアイコンで、入力中のパスワードを表示／非表示にできる。
+function PasswordInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [visible, setVisible] = useState(false)
+  const label = visible ? 'パスワードを隠す' : 'パスワードを表示する'
+  return (
+    <span className="passwordInput">
+      <input {...props} type={visible ? 'text' : 'password'} />
+      <button
+        className="passwordToggle"
+        type="button"
+        // 押してもキーボードが閉じないよう、入力欄からフォーカスを外さない
+        onMouseDown={(ev) => ev.preventDefault()}
+        onClick={() => setVisible((value) => !value)}
+        aria-label={label}
+        aria-pressed={visible}
+        title={label}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+          {visible ? <path d="M4 4l16 16" /> : null}
+        </svg>
+      </button>
+    </span>
+  )
 }
 
 function ProfileIcon(props: { profile: Pick<UserProfile, 'motifId' | 'iconColor' | 'imageUrl'>; size?: 'small' | 'normal' }) {
