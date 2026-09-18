@@ -69,7 +69,6 @@ export function Stage(props: {
     return (
       <div className="emptyStage" role="region" aria-label="イラスト未選択">
         <div className="emptyTitle">イラストを選んでスタート</div>
-        <div className="emptyBody">りんご・みかん・レモン・ほうれんそうを用意しました。</div>
       </div>
     )
   }
