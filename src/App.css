@@ -6127,3 +6127,41 @@ input[type="checkbox"]:checked::after {
     font-size: 16px;
   }
 }
+
+/* スマホ：アカウント画面のプロフィール欄。アイコンの右に「なまえ」と名前を横書きで表示し、その下の行に「編集する」ボタンを置く */
+@media (max-width: 600px) {
+  .accountProfileSummary {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 10px;
+  }
+
+  .accountProfileSummary .profileIcon {
+    grid-row: 1 / span 2;
+  }
+
+  .accountProfileSummary div {
+    align-self: end;
+  }
+
+  .accountProfileSummary strong {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .accountProfileSummary .accountEditButton {
+    grid-column: 2;
+    align-self: start;
+    justify-self: start;
+  }
+}
+
+/* とても幅の狭いスマホ（iPhone SE など）では、アイコンを小さくしてボタンがはみ出さないようにする */
+@media (max-width: 360px) {
+  .accountProfileSummary .profileIcon {
+    width: 92px;
+    height: 92px;
+  }
+}
