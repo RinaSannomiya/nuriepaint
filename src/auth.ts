@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { withCloudflare } from 'better-auth-cloudflare'
-import { existingAccountEmail, sendMail, verificationEmail } from './mail'
+import { existingAccountEmail, passwordResetEmail, sendMail, verificationEmail } from './mail'
 
 export type Env = {
   ASSETS: {
@@ -34,6 +34,8 @@ export type Env = {
 
 // 認証メールのリンクを開いたあとに戻ってくる画面の目印（App.tsx の readVerifyRedirect と対応）
 const VERIFY_DONE_CALLBACK = '/?verify=done'
+// パスワード再設定メールのリンクを開いたあとに戻ってくる画面の目印（App.tsx の readVerifyRedirect と対応）
+const RESET_PASSWORD_CALLBACK = '/?reset=1'
 
 export function createAuth(env: Env, request: Request) {
   const origin = new URL(request.url).origin
@@ -58,6 +60,19 @@ export function createAuth(env: Env, request: Request) {
           onExistingUserSignUp: async ({ user }) => {
             if (!user.emailVerified) return
             const mail = existingAccountEmail(origin)
+            await sendMail(env, { to: user.email, ...mail })
+          },
+          // パスワードの再設定は、登録メールアドレスに届くリンクから行う（リンクの有効期限は1時間）
+          resetPasswordTokenExpiresIn: 60 * 60,
+          // 再設定したら、ほかの端末のログインはいったん解除する
+          revokeSessionsOnPasswordReset: true,
+          sendResetPassword: async ({ user, url }) => {
+            const link = new URL(url)
+            // 戻り先が指定されていない場合も「新しいパスワードを入力する画面」に戻す
+            if (!link.searchParams.get('callbackURL')) {
+              link.searchParams.set('callbackURL', RESET_PASSWORD_CALLBACK)
+            }
+            const mail = passwordResetEmail(link.toString())
             await sendMail(env, { to: user.email, ...mail })
           },
         },

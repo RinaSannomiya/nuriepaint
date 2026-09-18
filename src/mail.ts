@@ -87,3 +87,22 @@ export function existingAccountEmail(siteUrl: string) {
 <p style="margin:24px 0"><a href="${escapeHtml(siteUrl)}" style="display:inline-block;padding:12px 24px;background:#ff6b5b;color:#fff;text-decoration:none;border-radius:999px;font-weight:bold">ログインしにいく</a></p>`),
   }
 }
+
+export function passwordResetEmail(url: string) {
+  return {
+    subject: '【ぬりえペイント】パスワードの再設定',
+    text: [
+      'ぬりえペイントのパスワード再設定のご依頼を受け付けました。',
+      '下のリンクを開いて、新しいパスワードを設定してください。',
+      '',
+      url,
+      '',
+      'リンクの有効期限は1時間です。',
+      'このメールに心当たりがない場合は、そのまま破棄してください（パスワードは変更されません）。',
+    ].join('\n'),
+    html: layout(`<p>ぬりえペイントのパスワード再設定のご依頼を受け付けました。<br>下のボタンを開いて、新しいパスワードを設定してください。</p>
+<p style="margin:24px 0"><a href="${escapeHtml(url)}" style="display:inline-block;padding:12px 24px;background:#ff6b5b;color:#fff;text-decoration:none;border-radius:999px;font-weight:bold">パスワードを再設定する</a></p>
+<p style="font-size:13px;color:#666">ボタンが開けない場合は、次のリンクをブラウザに貼り付けてください。<br><a href="${escapeHtml(url)}" style="color:#666;word-break:break-all">${escapeHtml(url)}</a></p>
+<p style="font-size:13px;color:#666">リンクの有効期限は1時間です。</p>`),
+  }
+}

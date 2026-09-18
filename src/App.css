@@ -6165,3 +6165,54 @@ input[type="checkbox"]:checked::after {
     height: 92px;
   }
 }
+
+/* パスワード入力欄：右端の目のアイコンで、入力中のパスワードを表示／非表示にする */
+.field .passwordInput {
+  position: relative;
+  display: block;
+}
+
+.field .passwordInput input {
+  padding-right: 52px;
+}
+
+.field .passwordInput input::-ms-reveal {
+  display: none;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.passwordToggle:hover,
+.passwordToggle[aria-pressed="true"] {
+  color: var(--accent-blue);
+}
+
+.passwordToggle:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+}
+
+.passwordToggle svg {
+  width: 22px;
+  height: 22px;
+}
+
+.accountPasswordForm .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
