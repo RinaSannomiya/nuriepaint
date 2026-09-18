@@ -3,6 +3,13 @@
   "name": "nurie-paint",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-11",
+  // 本番のURL。デプロイすると、DNS レコードと証明書が自動で作られる（nuriepaint.com は同じ Cloudflare アカウントで取得済み）。
+  "routes": [
+    {
+      "pattern": "nuriepaint.com",
+      "custom_domain": true
+    }
+  ],
   "observability": {
     "enabled": true
   },
