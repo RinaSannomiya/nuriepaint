@@ -3284,6 +3284,19 @@ input[type="checkbox"]:checked::after {
   .signupCompletePanel .pcSpace {
     display: none;
   }
+
+  /* 「プロフィールを設定する」ボタン：スマホは一回り大きく、文字は本文（17px）と同じ大きさ */
+  .signupCompletePanel .signupCompleteButton {
+    min-width: 260px;
+    min-height: 60px;
+    padding: 16px 32px;
+    font-size: 17px;
+  }
+
+  /* 幅の狭いスマホでも「う。」だけ次の行に落ちないよう、行の長さをそろえる */
+  .signupVerifiedPanel p {
+    text-wrap: balance;
+  }
 }
 
 .accountNameField {

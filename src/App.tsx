@@ -2983,7 +2983,7 @@ function App() {
                     : authMode === 'signupSent'
                       ? '確認メールを送りました'
                       : authMode === 'signupVerified'
-                        ? 'アカウントが作成できました'
+                        ? 'アカウント作成完了'
                         : authMode === 'verifyError'
                           ? 'リンクを開けませんでした'
                           : authMode === 'emailChanged'
@@ -3033,10 +3033,14 @@ function App() {
                 </section>
               ) : null}
               {authMode === 'signupVerified' ? (
-                <section className="signupCompletePanel" aria-label="アカウントが作成できました">
-                  <h2>アカウントが作成できました</h2>
-                  <p>メールアドレスの確認が完了しました。</p>
-                  <p>つづいて、名前とアイコンを設定しましょう。</p>
+                <section className="signupCompletePanel signupVerifiedPanel" aria-label="アカウントが作成できました">
+                  <h2>
+                    アカウントが<br className="spBreak" />作成できました
+                  </h2>
+                  <p>
+                    メールアドレスの確認が<br className="spBreak" />完了しました。
+                  </p>
+                  <p>名前とアイコンを設定しましょう。</p>
                   <button className="btn primaryAction signupCompleteButton" type="button" onClick={startSignupProfile}>
                     プロフィールを設定する
                   </button>
