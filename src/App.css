@@ -5800,6 +5800,31 @@ input[type="checkbox"]:checked::after {
     margin-top: 0;
   }
 
+  /* まなぶ一覧(スマホ): 説明文がクイズモードのスイッチに押されて中途半端に折り返されないよう、
+     1行目に「見出し＋スイッチ」、2行目以降に説明文を全幅で置く */
+  .quizCatalogPage .homeIntro.learningIntro {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 0;
+  }
+
+  .quizCatalogPage .homeIntro.learningIntro > div:not(.introActions) {
+    display: contents;
+  }
+
+  .quizCatalogPage .homeIntro.learningIntro h1 {
+    order: 1;
+  }
+
+  .quizCatalogPage .homeIntro.learningIntro .introActions {
+    order: 2;
+  }
+
+  .quizCatalogPage .homeIntro.learningIntro p {
+    order: 3;
+    flex: 0 0 100%;
+  }
+
   .homeIntro h1 {
     font-size: 28px;
   }
