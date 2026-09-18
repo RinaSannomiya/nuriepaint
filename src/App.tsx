@@ -3216,7 +3216,7 @@ function App() {
                     新しい<br className="spBreak" />パスワードを設定
                   </h2>
                   <p>
-                    新しいパスワードを<br className="spBreak" />2回入力してください。
+                    新しいパスワードを<br className="spBreak" />入力してください。
                   </p>
                   <label className="field verifyEmailField">
                     <span>新しいパスワード</span>
