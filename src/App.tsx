@@ -239,8 +239,13 @@ function App() {
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null)
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([])
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
-  const [authOpen, setAuthOpen] = useState(false)
-  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'signupProfile' | 'signupComplete' | 'profile'>('signin')
+  // 認証メールのリンクから戻ってきたときは、最初から該当の画面を開く
+  const [verifyRedirect] = useState(readVerifyRedirect)
+  const [authOpen, setAuthOpen] = useState(verifyRedirect !== null)
+  const [authMode, setAuthMode] = useState<AuthMode>(verifyRedirect?.mode ?? 'signin')
+  const [verifyError] = useState<string | null>(verifyRedirect?.error ?? null)
+  const [verifyResendBusy, setVerifyResendBusy] = useState(false)
+  const [authSentFromSignin, setAuthSentFromSignin] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(true)
   const [authName, setAuthName] = useState('')
@@ -542,10 +547,10 @@ function App() {
     return savedGallerySections.find((section) => section.id === activeGalleryCategoryId) ?? savedGallerySections[0] ?? null
   }, [activeGalleryCategoryId, galleryGroupMode, savedGallerySections])
 
-  const refreshMe = useCallback(async () => {
+  const refreshMe = useCallback(async (): Promise<AuthUser | null> => {
     const res = await fetch('/api/me', { credentials: 'include' })
-    if (!res.ok) return
-    if (!isJsonResponse(res)) return
+    if (!res.ok) return null
+    if (!isJsonResponse(res)) return null
     const data = (await res.json()) as { user: AuthUser | null; profile?: UserProfile | null }
     setAuthUser(data.user)
     setAuthName(data.user?.name ?? '')
@@ -554,6 +559,7 @@ function App() {
       setAuthMotifId(data.profile.motifId)
       setAuthIconColor(data.profile.iconColor)
     }
+    return data.user
   }, [])
 
   const loadQuizProgress = useCallback(async () => {
@@ -568,6 +574,11 @@ function App() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshMe()
   }, [refreshMe])
+
+  useEffect(() => {
+    // 認証メールのリンクから戻ってきたときの目印（?verify=...）は、画面を開いたあと URL から消す。
+    if (verifyRedirect) window.history.replaceState(null, '', window.location.pathname)
+  }, [verifyRedirect])
 
   useEffect(() => {
     if (!authUser) {
@@ -1110,21 +1121,32 @@ function App() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),
     })
+    if (!isSignup && res.status === 403) {
+      // メールアドレスの確認がまだのアカウント。サーバー側で確認メールを再送している。
+      const body = (await res.json().catch(() => null)) as { code?: string } | null
+      if (body?.code === 'EMAIL_NOT_VERIFIED') {
+        setAuthSentFromSignin(true)
+        setAuthMode('signupSent')
+        setAuthPassword('')
+        setStatus('')
+        return
+      }
+    }
     if (!res.ok || !isJsonResponse(res)) {
-      setStatus('ログイン情報を確認してください。')
+      setStatus(isSignup ? '登録できませんでした。入力内容を確認して、もう一度お試しください。' : 'ログイン情報を確認してください。')
       return
     }
-    await refreshMe()
     if (isSignup) {
-      setAuthMode('signupProfile')
-      setAccountProfileEditing(true)
-      setAuthName('')
+      // メール認証が済むまでログイン状態にはならない。確認メールのリンクを開くと、その先の画面に進む。
+      setAuthSentFromSignin(false)
+      setAuthMode('signupSent')
       setSignupPasswordConfirm('')
       setSignupConsent(false)
       setAuthPassword('')
       setStatus('')
       return
     }
+    await refreshMe()
     setAuthOpen(false)
     setAuthPassword('')
     setStatus('')
@@ -1728,6 +1750,41 @@ function App() {
     openPlayCatalog()
   }
 
+  async function startSignupProfile() {
+    // 認証メールのリンクを開くとログイン状態になっている。そうなっていなければログイン画面へ。
+    const me = await refreshMe()
+    if (!me) {
+      setAuthMode('signin')
+      setStatus('メールアドレスの確認が完了しました。ログインしてください。')
+      return
+    }
+    setAuthMode('signupProfile')
+    setAccountProfileEditing(true)
+    setAuthName('')
+    setStatus('')
+  }
+
+  async function resendVerificationEmail() {
+    const email = authEmail.trim()
+    if (!email || verifyResendBusy) return
+    // 続けて何度も送らないよう、しばらくボタンを押せなくする
+    setVerifyResendBusy(true)
+    window.setTimeout(() => setVerifyResendBusy(false), 30000)
+    setStatus('送信中...')
+    const res = await fetch('/api/auth/send-verification-email', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    if (!res.ok) {
+      setStatus('送信できませんでした。しばらくしてからもう一度お試しください。')
+      return
+    }
+    if (authMode === 'verifyError') setAuthMode('signupSent')
+    setStatus('確認メールをもう一度送りました。')
+  }
+
   function startAccountProfileEditing() {
     if (authProfile) {
       setAuthMotifId(authProfile.motifId)
@@ -1743,20 +1800,20 @@ function App() {
       setAccountEmailMessage('新しいメールアドレスを入力してください。')
       return
     }
-    setAccountEmailMessage('変更中...')
+    setAccountEmailMessage('送信中...')
     const res = await fetch('/api/auth/change-email', {
       method: 'POST',
       credentials: 'include',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ newEmail: nextEmail }),
+      body: JSON.stringify({ newEmail: nextEmail, callbackURL: '/?verify=emailchanged' }),
     })
     if (!res.ok || !isJsonResponse(res)) {
-      setAccountEmailMessage('メールアドレスを変更できませんでした。')
+      setAccountEmailMessage('確認メールを送れませんでした。しばらくしてからもう一度お試しください。')
       return
     }
-    await refreshMe()
+    // 新しいメールアドレスに届くリンクを開くと変更が完了する（それまでは今のメールアドレスのまま）
     setAccountEmailEditing(false)
-    setAccountEmailMessage('メールアドレスを変更しました。')
+    setAccountEmailMessage(`${nextEmail} に確認メールを送りました。メールのリンクを開くと、メールアドレスが変更されます。`)
   }
 
   async function submitAccountPasswordReset() {
@@ -2923,6 +2980,14 @@ function App() {
                 <div className="modalTitle">
                   {authMode === 'signup'
                     ? 'アカウント作成'
+                    : authMode === 'signupSent'
+                      ? '確認メールを送りました'
+                      : authMode === 'signupVerified'
+                        ? 'アカウントが作成できました'
+                        : authMode === 'verifyError'
+                          ? 'リンクを開けませんでした'
+                          : authMode === 'emailChanged'
+                            ? 'メールアドレスを変更しました'
                     : authMode === 'signupProfile'
                       ? 'プロフィール登録'
                       : authMode === 'signupComplete'
@@ -2939,6 +3004,74 @@ function App() {
               </button>
             </div>
             <div className="authBody">
+              {authMode === 'signupSent' ? (
+                <section className="signupCompletePanel verifyPanel" aria-label="確認メールを送りました">
+                  <h2>確認メールを送りました</h2>
+                  {authSentFromSignin ? <p>メールアドレスの確認がまだ完了していません。</p> : null}
+                  <p>
+                    <strong className="verifyEmail">{authEmail}</strong> に確認メールを送りました。
+                    <br />
+                    メールに書かれているリンクを開くと、アカウント作成が完了します。
+                  </p>
+                  <p className="verifyHint">メールが届かないときは、迷惑メールフォルダも確認してください。</p>
+                  <button className="btn" type="button" onClick={resendVerificationEmail} disabled={verifyResendBusy}>
+                    確認メールをもう一度送る
+                  </button>
+                  <button
+                    className="linkBtn"
+                    type="button"
+                    onClick={() => {
+                      setAuthMode(authSentFromSignin ? 'signin' : 'signup')
+                      setStatus('')
+                    }}
+                  >
+                    {authSentFromSignin ? 'ログイン画面へ' : 'メールアドレスを入力し直す'}
+                  </button>
+                </section>
+              ) : null}
+              {authMode === 'signupVerified' ? (
+                <section className="signupCompletePanel" aria-label="アカウントが作成できました">
+                  <h2>アカウントが作成できました</h2>
+                  <p>メールアドレスの確認が完了しました。</p>
+                  <p>つづいて、名前とアイコンを設定しましょう。</p>
+                  <button className="btn primaryAction signupCompleteButton" type="button" onClick={startSignupProfile}>
+                    プロフィールを設定する
+                  </button>
+                </section>
+              ) : null}
+              {authMode === 'verifyError' ? (
+                <section className="signupCompletePanel verifyPanel" aria-label="リンクを開けませんでした">
+                  <h2>リンクを開けませんでした</h2>
+                  <p>{verifyError === 'TOKEN_EXPIRED' ? 'リンクの有効期限が切れています。' : 'リンクが正しくないか、すでに使われています。'}</p>
+                  <p className="verifyHint">メールアドレスを入力して、確認メールをもう一度送ってください。</p>
+                  <label className="field verifyEmailField">
+                    <span>メール</span>
+                    <input value={authEmail} onChange={(ev) => setAuthEmail(ev.target.value)} type="email" autoComplete="email" />
+                  </label>
+                  <button className="btn primaryAction" type="button" onClick={resendVerificationEmail} disabled={verifyResendBusy || !authEmail.trim()}>
+                    確認メールを送る
+                  </button>
+                  <button
+                    className="linkBtn"
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signin')
+                      setStatus('')
+                    }}
+                  >
+                    ログイン画面へ
+                  </button>
+                </section>
+              ) : null}
+              {authMode === 'emailChanged' ? (
+                <section className="signupCompletePanel" aria-label="メールアドレスを変更しました">
+                  <h2>メールアドレスを変更しました</h2>
+                  <p>これからは新しいメールアドレスでログインできます。</p>
+                  <button className="btn primaryAction signupCompleteButton" type="button" onClick={() => setAuthOpen(false)}>
+                    閉じる
+                  </button>
+                </section>
+              ) : null}
               {authMode === 'signupComplete' ? (
                 <section className="signupCompletePanel" aria-label="アカウント作成完了">
                   <h2>アカウント作成完了！</h2>
@@ -2998,7 +3131,7 @@ function App() {
                           <input value={accountEmailValue} onChange={(ev) => setAccountEmailValue(ev.target.value)} type="email" autoComplete="email" required />
                         </label>
                         <button className="btn primaryAction" type="button" onClick={submitAccountEmailChange}>
-                          メールを変更する
+                          確認メールを送る
                         </button>
                       </div>
                     ) : null}
@@ -3161,7 +3294,7 @@ function App() {
                   )}
                 </section>
               ) : null}
-              {authMode !== 'profile' && authMode !== 'signupProfile' && authMode !== 'signupComplete' ? (
+              {(authMode === 'signin' || authMode === 'signup') ? (
                 <>
                   <label className="field">
                     <span>メール</span>
@@ -3227,7 +3360,7 @@ function App() {
                   {authMode === 'signup' ? '作成する' : authMode === 'profile' || authMode === 'signupProfile' ? '保存する' : 'ログインする'}
                 </button>
               ) : null}
-              {authMode !== 'profile' && authMode !== 'signupProfile' && authMode !== 'signupComplete' ? (
+              {(authMode === 'signin' || authMode === 'signup') ? (
                 <button
                   className="linkBtn"
                   type="button"
@@ -3658,6 +3791,31 @@ function App() {
       ) : null}
     </div>
   )
+}
+
+type AuthMode =
+  | 'signin'
+  | 'signup'
+  | 'signupSent'
+  | 'signupVerified'
+  | 'signupProfile'
+  | 'signupComplete'
+  | 'verifyError'
+  | 'emailChanged'
+  | 'profile'
+
+// 認証メールのリンクを開いたあとに戻ってくる URL（?verify=done / ?verify=emailchanged、失敗時は &error=...）を読む。
+// サーバー側（src/auth.ts）が付ける callbackURL と対応している。
+function readVerifyRedirect(): { mode: AuthMode; error: string | null } | null {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  const kind = params.get('verify')
+  if (!kind) return null
+  const error = params.get('error')
+  if (error) return { mode: 'verifyError', error }
+  if (kind === 'done') return { mode: 'signupVerified', error: null }
+  if (kind === 'emailchanged') return { mode: 'emailChanged', error: null }
+  return null
 }
 
 function isJsonResponse(res: Response) {

@@ -3251,6 +3251,26 @@ input[type="checkbox"]:checked::after {
   margin-top: 10px;
 }
 
+/* メール認証まわりの画面（確認メール送信済み・リンク無効）*/
+.signupCompletePanel .verifyEmail {
+  word-break: break-all;
+}
+
+.signupCompletePanel .verifyHint {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.signupCompletePanel .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.signupCompletePanel .verifyEmailField {
+  width: min(360px, 100%);
+  text-align: left;
+}
+
 .accountNameField {
   gap: 8px;
   font-size: 14px;
