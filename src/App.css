@@ -5018,6 +5018,7 @@ input[type="checkbox"]:checked::after {
     min-height: 0;
     overflow: hidden;
     padding-right: 0;
+    padding-bottom: 0; /* 一番下までスクロールしたとき、絵の下端がパレットの真上まで来るように */
     padding-left: 0;
   }
 
@@ -5110,42 +5111,59 @@ input[type="checkbox"]:checked::after {
     border-radius: 0;
   }
 
+  /* スマホの黄色ヘッダー：ぬりえのタイトルと、必要最小限のボタン（クイズ中は「完成！」）だけにする。
+     拡大縮小はピンチ操作なので虫眼鏡・100%は出さない。クイズモード表示バッジ・「ぬりえモードへ」も省いて余裕を作る */
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .stageHeader {
     padding: 10px 12px 8px;
+    gap: 8px;
   }
 
   .stageTitleBlock {
-    flex-basis: 50%;
-    max-width: 50%;
+    flex: 1 1 0;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .stageTitle {
+    font-size: 17px;
   }
 
   .stageHeaderActions {
+    flex: 0 0 auto;
+    margin-left: auto;
     gap: 6px;
+  }
+
+  .stageHeaderActions .btn {
+    min-width: 0;
+    padding: 8px 14px;
+    flex: 0 0 auto;
   }
 
   .tabletStageQuickActions {
     display: none;
   }
 
-  .mobileZoomControls {
-    display: flex;
-  }
-
-  .mobileStageZoomResetButton {
-    min-width: 58px;
-    padding-inline: 10px;
+  .stageHeaderActions .mobileZoomControls,
+  .stageTitleRow .quizModeBadge,
+  .stageHeaderActions .quizExitButton {
+    display: none;
   }
 
   .paper {
     height: max(220px, min(44dvh, calc(100dvh - var(--mobile-dock-clearance) - 118px)));
     min-height: 0;
     max-height: none;
-    padding: 0 0 20px;
+    padding: 0;
     align-items: safe center;
     justify-items: center;
     overflow-x: hidden;
     overflow-y: auto;
-    scroll-padding-bottom: 28px;
+    scroll-padding-bottom: 0;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     touch-action: none;

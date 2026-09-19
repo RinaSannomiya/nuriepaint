@@ -105,7 +105,7 @@ export function Stage(props: {
           </div>
           {props.quizMode ? (
             <>
-              <button className="btn quizModeToggleButton" type="button" onClick={props.onExitQuiz}>
+              <button className="btn quizModeToggleButton quizExitButton" type="button" onClick={props.onExitQuiz}>
                 ぬりえモードへ
               </button>
               <button className="btn quizCompleteButton" type="button" onClick={props.onCompleteQuiz}>
@@ -144,7 +144,9 @@ export function Stage(props: {
           props.onZoomChange(nextZoom)
         }}
         onTouchStart={(ev) => {
-          if (ev.touches.length === 1 && props.zoom > 1 && !props.brush) {
+          const paper = ev.currentTarget
+          const canPan = props.zoom > 1 || paper.scrollHeight > paper.clientHeight + 1 || paper.scrollWidth > paper.clientWidth + 1
+          if (ev.touches.length === 1 && canPan && !props.brush) {
             panRef.current = {
               x: ev.touches[0].clientX,
               y: ev.touches[0].clientY,
@@ -167,7 +169,7 @@ export function Stage(props: {
           }
         }}
         onTouchMove={(ev) => {
-          if (ev.touches.length === 1 && panRef.current && props.zoom > 1 && !props.brush) {
+          if (ev.touches.length === 1 && panRef.current && !props.brush) {
             ev.preventDefault()
             ev.currentTarget.scrollLeft = panRef.current.scrollLeft + panRef.current.x - ev.touches[0].clientX
             ev.currentTarget.scrollTop = panRef.current.scrollTop + panRef.current.y - ev.touches[0].clientY
