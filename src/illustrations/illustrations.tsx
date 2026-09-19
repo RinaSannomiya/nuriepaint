@@ -101,9 +101,11 @@ const FOOD_ILLUSTRATIONS: IllustrationDef[] = [
 ]
 
 const FLAG_RASTER_CROP = { x: 96, y: 36, width: 1562, height: 1168 }
+// 縦横比が他と違う画像（ネパール・スイス・バチカン）は切り出さず全体を使う
+const FLAG_NO_CROP_PAGES = new Set(['116', '077', '118'])
 
 const FLAG_ILLUSTRATIONS: IllustrationDef[] = FLAG_DATA.map((flag) => {
-  const isNepal = flag.page === '116'
+  const noCrop = FLAG_NO_CROP_PAGES.has(flag.page)
   return {
     id: `flag-${flag.page}`,
     title: flag.country,
@@ -111,13 +113,13 @@ const FLAG_ILLUSTRATIONS: IllustrationDef[] = FLAG_DATA.map((flag) => {
     thumbnailImage: `/lineart/flags/flag-${flag.page}.png`,
     referenceImage: `/lineart/flags-colored/flag-${flag.page}.png`,
     raster: true,
-    rasterCrop: isNepal ? undefined : FLAG_RASTER_CROP,
+    rasterCrop: noCrop ? undefined : FLAG_RASTER_CROP,
     node: (props) => (
       <RasterLineArt
         {...props}
         title={flag.country}
         source={`/lineart/flags/flag-${flag.page}.png`}
-        crop={isNepal ? undefined : FLAG_RASTER_CROP}
+        crop={noCrop ? undefined : FLAG_RASTER_CROP}
       />
     ),
   }

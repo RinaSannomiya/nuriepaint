@@ -5,6 +5,7 @@ import { IllustrationThumb } from './components/IllustrationThumb'
 import { Sidebar } from './components/Sidebar'
 import { Stage } from './components/Stage'
 import { ILLUSTRATIONS, ILLUSTRATION_CATEGORIES, type IllustrationCategory, type IllustrationDef } from './illustrations/illustrations'
+import { FLAG_QUIZ_DATA } from './illustrations/flagQuizData'
 import { RasterLineArt, type RasterPaintCommand } from './illustrations/svgs/RasterLineArt'
 
 type FillMap = Record<string, string>
@@ -153,6 +154,8 @@ const PROFILE_MOTIFS: ProfileMotif[] = [
 ]
 const PROFILE_ICON_COLORS = ['#EF6950', '#FEB61C', '#29A2DE', '#1CB5A5', '#FDEB6A', '#AF52DE', '#FF8AC2']
 const QUIZ_CONFIGS: Record<string, QuizConfig> = {
+  // 国旗のクイズ用パレットは見本画像から自動生成（scripts/generate-flag-quiz-data.py）。手書きの定義は下で上書きされる
+  ...FLAG_QUIZ_DATA,
   'flag-001': {
     passingScore: 88,
     swatches: [
@@ -695,7 +698,7 @@ function App() {
     })
   }, [selected, selectedCategoryId, showPlayCatalog, showQuizCatalog, showCreatePage, showSpreadPage, showGalleryPage, showSavedPage])
 
-  function chooseIllustration(id: string, opts?: { scrollSidebarToTop?: boolean }) {
+  function chooseIllustration(id: string, opts?: { scrollSidebarToTop?: boolean; forceQuiz?: boolean }) {
     const category = playCategories.find((it) => it.illustrationIds.includes(id))
     if (category) {
       if (category.id !== selectedCategoryId) {
@@ -711,7 +714,8 @@ function App() {
       setGallerySidebarScrollToken((token) => token + 1)
     }
     const nextQuizConfig = quizConfigs[id]
-    const nextQuiz = Boolean(quizSelectionArmed && nextQuizConfig)
+    const nextQuiz = Boolean((opts?.forceQuiz || quizSelectionArmed) && nextQuizConfig)
+    if (opts?.forceQuiz) setQuizSelectionArmed(true)
     setShowPlayCatalog(false)
     setShowQuizCatalog(false)
     setShowCreatePage(false)
@@ -1066,7 +1070,20 @@ function App() {
 
   function goToNextQuizChallenge() {
     if (selected) {
-      const categoryId = learnCategories.find((category) => category.illustrationIds.includes(selected))?.id ?? selectedCategoryId
+      const category = learnCategories.find((it) => it.illustrationIds.includes(selected))
+      if (category) {
+        // 同じカテゴリーの中で、いまのぬりえの次にあるクイズ対象のぬりえへ直接移動する
+        const nextId = category.illustrationIds
+          .slice(category.illustrationIds.indexOf(selected) + 1)
+          .find((id) => Boolean(quizConfigs[id]))
+        if (nextId) {
+          setSelectedCategoryId(category.id)
+          chooseIllustration(nextId, { forceQuiz: true })
+          return
+        }
+      }
+      // 最後のぬりえまで来たときは、これまで通りカテゴリーのぬりえ一覧に戻る
+      const categoryId = category?.id ?? selectedCategoryId
       if (categoryId) setSelectedCategoryId(categoryId)
     }
     setSelected(null)
