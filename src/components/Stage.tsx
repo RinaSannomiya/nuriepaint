@@ -20,6 +20,8 @@ export function Stage(props: {
   onStartQuiz?: () => void
   onExitQuiz?: () => void
   onCompleteQuiz?: () => void
+  challengeProgress?: string
+  onQuitChallenge?: () => void
   onOpenSaved?: () => void
   onSave?: () => void
   onPickColor?: (color: string) => void
@@ -79,9 +81,10 @@ export function Stage(props: {
         <div className="stageTitleBlock">
           <div className="stageTitleRow">
             <div className="stageTitle">{props.illustration.title}</div>
-            {props.quizMode ? <span className="quizModeBadge">クイズモード</span> : null}
+            {props.quizMode ? <span className="quizModeBadge">{props.challengeProgress ? 'チャレンジ' : 'クイズモード'}</span> : null}
           </div>
           <div className="stageSub">{props.illustration.subtitle}</div>
+          {props.challengeProgress ? <div className="challengeProgress">{props.challengeProgress}</div> : null}
         </div>
         <div className="stageHeaderActions">
           <div className="tabletStageQuickActions">
@@ -105,9 +108,15 @@ export function Stage(props: {
           </div>
           {props.quizMode ? (
             <>
-              <button className="btn quizModeToggleButton quizExitButton" type="button" onClick={props.onExitQuiz}>
-                ぬりえモードへ
-              </button>
+              {props.onQuitChallenge ? (
+                <button className="btn challengeQuitButton" type="button" onClick={props.onQuitChallenge}>
+                  やめる
+                </button>
+              ) : (
+                <button className="btn quizModeToggleButton quizExitButton" type="button" onClick={props.onExitQuiz}>
+                  ぬりえモードへ
+                </button>
+              )}
               <button className="btn quizCompleteButton" type="button" onClick={props.onCompleteQuiz}>
                 完成！
               </button>

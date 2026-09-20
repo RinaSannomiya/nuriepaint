@@ -144,6 +144,19 @@ type QuizCategoryProgress = {
   totalCount: number
 }
 
+// 連続正解チャレンジ: 一覧画面で出題数を決め、そのカテゴリー（まなぶ一覧ではすべて）からランダムに出題する
+type QuizChallenge = {
+  categoryId: string | null // null は「すべてのカテゴリー」
+  poolIds: string[]
+  ids: string[]
+  index: number
+  results: boolean[]
+  lastScore: number
+  phase: 'answering' | 'answered' | 'finished'
+}
+type ChallengeCount = number | 'all'
+const CHALLENGE_COUNT_OPTIONS = [5, 10, 20]
+
 const QUIZ_CATEGORY_IDS = new Set(['flags', 'signal-flags'])
 const PROFILE_MOTIFS: ProfileMotif[] = [
   { id: 'boy', label: 'おとこのこ', imageUrl: '/profile-motifs/boy.png' },
@@ -263,6 +276,11 @@ function App() {
   const [dynamicQuizConfigs, setDynamicQuizConfigs] = useState<Record<string, QuizConfig>>({})
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null)
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([])
+  const [challengeCount, setChallengeCount] = useState<ChallengeCount>(10)
+  const [challengeState, setChallengeState] = useState<QuizChallenge | null>(null)
+  const [challengeQuitOpen, setChallengeQuitOpen] = useState(false)
+  const challengeBusyRef = useRef(false)
+  const challengeArmedRef = useRef(false)
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   // 認証メールのリンクから戻ってきたときは、最初から該当の画面を開く
   const [verifyRedirect] = useState(readVerifyRedirect)
@@ -478,6 +496,24 @@ function App() {
 
   const fills = selected ? state.fillsByIllustration[selected] ?? {} : {}
   const selectedQuiz = selected ? quizConfigs[selected] ?? null : null
+  const illustrationById = useMemo(() => new Map(allIllustrations.map((it) => [it.id, it])), [allIllustrations])
+  // いま開いている一覧（カテゴリー or まなぶ）からチャレンジで出せる問題
+  const challengePoolIds = useMemo(() => {
+    const categories = selectedCategory ? [selectedCategory] : showQuizCatalog ? quizCategories : []
+    const ids = new Set<string>()
+    for (const category of categories) {
+      for (const id of category.illustrationIds) {
+        if (quizConfigs[id] && illustrationById.get(id)?.referenceImage) ids.add(id)
+      }
+    }
+    return [...ids]
+  }, [illustrationById, quizCategories, quizConfigs, selectedCategory, showQuizCatalog])
+  // チャレンジ中の問題を開いている間だけ有効（別のぬりえを開いたら自然に無効になる）
+  const challenge = challengeState && (challengeState.phase === 'finished' || (quizMode && selected === challengeState.ids[challengeState.index])) ? challengeState : null
+  const challengeRunning = challenge !== null && challenge.phase !== 'finished'
+  const challengeLabel = challenge && challengeRunning
+    ? `${challenge.index + 1} / ${challenge.ids.length}問目 ・ 連続正解 ${challengeStreak(challenge.results)}`
+    : undefined
   const selectedQuizSwatches = useMemo(() => {
     if (!selected || !selectedQuiz) return null
     return shuffleQuizSwatches(selectedQuiz.swatches, `${selected}:quiz-palette`)
@@ -738,10 +774,10 @@ function App() {
     })
   }, [selected, selectedCategoryId, showPlayCatalog, showQuizCatalog, showCreatePage, showSpreadPage, showGalleryPage, showSavedPage])
 
-  function chooseIllustration(id: string, opts?: { scrollSidebarToTop?: boolean; forceQuiz?: boolean }) {
+  function chooseIllustration(id: string, opts?: { scrollSidebarToTop?: boolean; forceQuiz?: boolean; challenge?: boolean }) {
     const category = playCategories.find((it) => it.illustrationIds.includes(id))
     if (category) {
-      if (category.id !== selectedCategoryId) {
+      if (category.id !== selectedCategoryId && !opts?.challenge) {
         setCategoryReturnPage(showQuizCatalog ? 'learn' : 'play')
       }
       setSelectedCategoryId(category.id)
@@ -767,6 +803,7 @@ function App() {
     setBrush(false)
     setSelected(id)
     setQuizResult(null)
+    if (!opts?.challenge) setChallengeState(null)
     setQuizMode(nextQuiz)
     if (nextQuiz && nextQuizConfig) {
       setColor(shuffleQuizSwatches(nextQuizConfig.swatches, `${id}:quiz-palette`)[0]?.hex ?? nextQuizConfig.swatches[0].hex)
@@ -1075,13 +1112,30 @@ function App() {
 
   async function completeQuiz() {
     if (!selected || !selectedDef?.referenceImage || !selectedQuiz) return
+    // チャレンジ中の答え合わせは1回だけ（連打しても1問として数える）
+    const inChallenge = challenge?.phase === 'answering'
+    if (inChallenge) {
+      if (challengeBusyRef.current) return
+      challengeBusyRef.current = true
+    }
     setStatus('答え合わせ中...')
     const result = await evaluateRasterQuiz(selectedDef.referenceImage, selectedDef.title, selectedQuiz.passingScore, selectedDef.rasterCrop).catch(() => null)
     if (!result) {
+      challengeBusyRef.current = false
       setStatus('答え合わせできませんでした。')
       return
     }
-    setQuizResult(result)
+    if (inChallenge) {
+      const answeredId = selected
+      setChallengeState((prev) => (
+        prev && prev.phase === 'answering' && prev.ids[prev.index] === answeredId
+          ? { ...prev, results: [...prev.results, result.passed], lastScore: result.score, phase: 'answered' }
+          : prev
+      ))
+      challengeBusyRef.current = false
+    } else {
+      setQuizResult(result)
+    }
     if (authUser) {
       await saveQuizAttempt(selected, selectedDef.title, result)
       await loadQuizProgress()
@@ -1106,6 +1160,62 @@ function App() {
         passed: result.passed,
       }),
     }).catch(() => null)
+  }
+
+  function startChallenge() {
+    const pool = challengePoolIds
+    if (!pool.length) return
+    const count = challengeCount === 'all' ? pool.length : Math.min(challengeCount, pool.length)
+    const ids = shuffleArray(pool).slice(0, count)
+    challengeBusyRef.current = false
+    challengeArmedRef.current = quizSelectionArmed
+    setChallengeQuitOpen(false)
+    if (!selectedCategory) setCategoryReturnPage('learn')
+    setChallengeState({ categoryId: selectedCategory?.id ?? null, poolIds: pool, ids, index: 0, results: [], lastScore: 0, phase: 'answering' })
+    chooseIllustration(ids[0], { forceQuiz: true, challenge: true, scrollSidebarToTop: false })
+  }
+
+  function nextChallengeQuestion() {
+    if (!challenge || challenge.phase !== 'answered') return
+    const nextIndex = challenge.index + 1
+    if (nextIndex >= challenge.ids.length) {
+      setChallengeState({ ...challenge, phase: 'finished' })
+      return
+    }
+    challengeBusyRef.current = false
+    setChallengeState({ ...challenge, index: nextIndex, phase: 'answering' })
+    chooseIllustration(challenge.ids[nextIndex], { forceQuiz: true, challenge: true, scrollSidebarToTop: false })
+  }
+
+  function restartChallenge() {
+    if (!challenge) return
+    const ids = shuffleArray(challenge.poolIds).slice(0, challenge.ids.length)
+    challengeBusyRef.current = false
+    setChallengeState({ ...challenge, ids, index: 0, results: [], lastScore: 0, phase: 'answering' })
+    chooseIllustration(ids[0], { forceQuiz: true, challenge: true, scrollSidebarToTop: false })
+  }
+
+  // チャレンジを終えて（またはやめて）、始めた一覧画面に戻る
+  function exitChallenge() {
+    const current = challenge
+    challengeBusyRef.current = false
+    setChallengeState(null)
+    setChallengeQuitOpen(false)
+    if (!current || current.categoryId === null) {
+      openQuizCatalog()
+      return
+    }
+    setSelected(null)
+    setSelectedCategoryId(current.categoryId)
+    setShowPlayCatalog(false)
+    setShowQuizCatalog(false)
+    setShowCreatePage(false)
+    setShowSpreadPage(false)
+    setShowGalleryPage(false)
+    setShowSavedPage(false)
+    setQuizMode(false)
+    setQuizSelectionArmed(challengeArmedRef.current)
+    setQuizResult(null)
   }
 
   function goToNextQuizChallenge() {
@@ -1815,6 +1925,139 @@ function App() {
     )
   }
 
+  function renderChallengeBar() {
+    const poolSize = challengePoolIds.length
+    if (!poolSize) return null
+    const numericOptions = CHALLENGE_COUNT_OPTIONS.filter((n) => n < poolSize)
+    const effective = challengeCount === 'all' || challengeCount >= poolSize ? poolSize : challengeCount
+    const isAll = effective === poolSize
+    return (
+      <section className="challengeBar" aria-label="連続正解チャレンジ">
+        <div className="challengeBarText">
+          <strong>連続正解チャレンジ</strong>
+          <span>
+            {selectedCategory ? `「${selectedCategory.title}」` : 'すべてのカテゴリー'}からランダムに出題！何問つづけて正解できるかな？
+          </span>
+        </div>
+        <div className="challengeControls">
+          <div className="challengeCountPicker" role="radiogroup" aria-label="出題数">
+            {numericOptions.map((n) => (
+              <button key={n} type="button" role="radio" aria-checked={!isAll && effective === n} className="challengeChip" onClick={() => setChallengeCount(n)}>
+                {n}問
+              </button>
+            ))}
+            <button type="button" role="radio" aria-checked={isAll} className="challengeChip" onClick={() => setChallengeCount('all')}>
+              全部（{poolSize}問）
+            </button>
+          </div>
+          <button className="btn primaryAction challengeStartButton" type="button" onClick={startChallenge}>
+            {effective}問チャレンジ！
+          </button>
+        </div>
+      </section>
+    )
+  }
+
+  function renderChallengeModals() {
+    if (challengeQuitOpen && challengeRunning) {
+      return (
+        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="チャレンジをやめる">
+          <div className="modal quizResultPanel challengeResultPanel">
+            <div className="modalHead">
+              <div>
+                <div className="modalTitle">チャレンジをやめますか？</div>
+              </div>
+            </div>
+            <div className="quizResultBody">
+              <p>ここまでのチャレンジの結果はなくなります。</p>
+              <div className="challengeResultActions">
+                <button className="btn primaryAction" type="button" onClick={() => setChallengeQuitOpen(false)}>
+                  つづける
+                </button>
+                <button className="btn" type="button" onClick={exitChallenge}>
+                  やめる
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    if (!challenge || challenge.phase === 'answering') return null
+    const total = challenge.ids.length
+    const correct = challenge.results.filter(Boolean).length
+    const streak = challengeStreak(challenge.results)
+    if (challenge.phase === 'answered') {
+      const lastCorrect = challenge.results[challenge.results.length - 1] === true
+      const isLast = challenge.index + 1 >= total
+      return (
+        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="チャレンジの判定結果">
+          <div className="modal quizResultPanel challengeResultPanel">
+            <div className="modalHead">
+              <div>
+                <div className="modalTitle">{challenge.index + 1} / {total}問目</div>
+              </div>
+            </div>
+            <div className="quizResultBody">
+              <div className={`quizScoreBadge ${lastCorrect ? 'passedQuiz' : 'missedQuiz'}`}>
+                {lastCorrect ? '正解！' : 'ざんねん'}
+              </div>
+              <p>
+                {lastCorrect
+                  ? (streak >= 2 ? `${streak}問れんぞく正解！すごい！` : 'よくできました！')
+                  : (
+                    <>
+                      見本と違う色、またはまだ塗れていない場所がありました。（{challenge.lastScore}%）<br />
+                      れんぞく正解はここまで。つぎもがんばろう！
+                    </>
+                  )}
+              </p>
+              <div className="quizResultStats">
+                <span>正解 {correct}問</span>
+                <span>連続 {streak}問</span>
+                <span>のこり {total - challenge.index - 1}問</span>
+              </div>
+              <button className="btn primaryAction quizNextButton" type="button" onClick={nextChallengeQuestion}>
+                {isLast ? '結果を見る' : '次の問題へ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    const perfect = correct === total
+    return (
+      <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="チャレンジ結果">
+        <div className="modal quizResultPanel challengeResultPanel">
+          <div className="modalHead">
+            <div>
+              <div className="modalTitle">チャレンジ結果</div>
+            </div>
+          </div>
+          <div className="quizResultBody">
+            <div className={`quizScoreBadge ${perfect ? 'passedQuiz' : ''} ${total >= 100 ? 'longScore' : ''}`}>
+              {correct}/{total}
+            </div>
+            <p>{perfect ? 'ぜんぶ正解！パーフェクト！' : `${total}問中 ${correct}問 正解でした。`}</p>
+            <div className="quizResultStats">
+              <span>正解 {correct}問</span>
+              <span>まちがい {total - correct}問</span>
+              <span>最高れんぞく {challengeBestStreak(challenge.results)}問</span>
+            </div>
+            <div className="challengeResultActions">
+              <button className="btn primaryAction quizNextButton" type="button" onClick={restartChallenge}>
+                もういちど挑戦
+              </button>
+              <button className="btn" type="button" onClick={exitChallenge}>
+                一覧にもどる
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   function renderQuizModeSwitch() {
     return (
       <label className="quizModeSwitch">
@@ -2228,7 +2471,7 @@ function App() {
               <button className="navLink editingSettingsNavButton" type="button" onClick={() => setSettingsOpen(true)}>
                 設定
               </button>
-              {quizMode ? <span className="topQuizModeBadge">クイズモード</span> : null}
+              {quizMode ? <span className="topQuizModeBadge">{challengeRunning ? 'チャレンジ' : 'クイズモード'}</span> : null}
               <button className="btn illustrationTopButton" type="button" onClick={() => setSelected(null)}>
                 ぬりえを選ぶ
               </button>
@@ -2268,7 +2511,7 @@ function App() {
       {selected ? (
         <>
           <div className="layout">
-            <aside className="rail">
+            <aside className={`rail ${challengeRunning ? 'challengeLocked' : ''}`} inert={challengeRunning}>
               <Sidebar selected={selected} illustrations={displayedCategoryIllustrations.length ? displayedCategoryIllustrations : undefined} learnedIds={learnedQuizIds} onSelect={(id) => chooseIllustration(id, { scrollSidebarToTop: false })} onBackToCategories={backToCategorySelection} scrollToTopToken={gallerySidebarScrollToken} />
             </aside>
 
@@ -2303,6 +2546,8 @@ function App() {
                   onStartQuiz={startQuizMode}
                   onExitQuiz={exitQuizMode}
                   onCompleteQuiz={completeQuiz}
+                  challengeProgress={challengeLabel}
+                  onQuitChallenge={challengeRunning ? () => setChallengeQuitOpen(true) : undefined}
                   onOpenSaved={() => openSavedPage({ rememberReturn: true })}
                   onSave={saveColoring}
                   onPickColor={(pickedColor) => {
@@ -2948,6 +3193,7 @@ function App() {
               </div>
             ) : null}
             </div>
+          {(selectedCategory ? selectedCategoryHasQuiz : showQuizCatalog) ? renderChallengeBar() : null}
           {selectedCategory ? (
             <section className="homeGrid" aria-label="イラスト一覧">
               {displayedCategoryIllustrations.map((it, idx) => (
@@ -3161,6 +3407,7 @@ function App() {
           </div>
         </div>
       ) : null}
+      {renderChallengeModals()}
       {quizResult ? (
         <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="クイズ結果">
           <div className="modal quizResultPanel">
@@ -4316,6 +4563,32 @@ function fillQuizSwatchesWithDummies(swatches: PaletteSwatch[], seedText: string
   // 2回目（まだ足りないとき）: 色が近すぎるものだけ除く
   addFrom((candidate) => result.some((swatch) => colorDistance(hexToRgb(candidate.hex), hexToRgb(swatch.hex)) < 64))
   return result
+}
+
+function shuffleArray<T>(items: T[]): T[] {
+  const result = [...items]
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    ;[result[index], result[swapIndex]] = [result[swapIndex], result[index]]
+  }
+  return result
+}
+
+// いま何問つづけて正解しているか（最後の問題から数える）
+function challengeStreak(results: boolean[]) {
+  let streak = 0
+  for (let index = results.length - 1; index >= 0 && results[index]; index -= 1) streak += 1
+  return streak
+}
+
+function challengeBestStreak(results: boolean[]) {
+  let best = 0
+  let current = 0
+  for (const passed of results) {
+    current = passed ? current + 1 : 0
+    best = Math.max(best, current)
+  }
+  return best
 }
 
 function shuffleQuizSwatches(swatches: PaletteSwatch[], seedText: string) {

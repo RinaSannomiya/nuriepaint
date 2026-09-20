@@ -6391,3 +6391,118 @@ input[type="checkbox"]:checked::after {
 .mobileCurrentColor span.isWhite {
   box-shadow: inset 0 0 0 1px #cfd4dc;
 }
+
+
+/* ===== 連続正解チャレンジ ===== */
+.challengeBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  margin: 0 0 28px;
+  padding: 18px 22px;
+  border-radius: 24px;
+  background: #f0fbf9;
+  box-shadow: inset 0 0 0 2px rgba(28, 181, 165, 0.35);
+}
+
+.challengeBarText {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.challengeBarText strong {
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.challengeBarText span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.challengeControls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.challengeCountPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.challengeBar .challengeChip {
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px rgba(193, 217, 229, 0.8);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.challengeBar .challengeChip[aria-checked='true'] {
+  background: #1cb5a5;
+  box-shadow: none;
+  color: #fff;
+}
+
+.btn.primaryAction.challengeStartButton {
+  min-height: 44px;
+}
+
+.stageTitleBlock .challengeProgress {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stageHeaderActions .btn.challengeQuitButton {
+  background: #fff;
+}
+
+.rail.challengeLocked {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.challengeResultPanel .quizScoreBadge.missedQuiz,
+.challengeResultPanel .quizScoreBadge.longScore {
+  font-size: 22px;
+}
+
+.challengeResultActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+@media (max-width: 920px) {
+  .challengeBar {
+    padding: 16px;
+    margin-bottom: 22px;
+  }
+
+  .challengeControls {
+    width: 100%;
+  }
+
+  .btn.primaryAction.challengeStartButton {
+    flex: 1 1 100%;
+  }
+}
