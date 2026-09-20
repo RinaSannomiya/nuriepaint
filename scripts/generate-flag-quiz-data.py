@@ -41,6 +41,12 @@ MIN_CLUSTER_AREA = 0.0025  # 全体の0.25%未満の色は正解色に含めな�
 MAX_ANSWERS = 7
 ALIGN_MIN_CLUSTER_AREA = 0.005  # 見本を作り直す旗は、紋章の細かい色を減らす
 ALIGN_MAX_ANSWERS = 6
+# 小さな色（星・紋章の葉など）の拾い上げ。面積が小さくてパレットから漏れた色を、正解色に追加する
+RESCUE_MIN_REGION = 30  # 拾う領域の最小面積(px)
+RESCUE_MIN_BLACK = 20  # 黒い領域は、線ではない「面」の黒い画素がこれ以上あるものだけ拾う（文字など）
+RESCUE_MIN_TOTAL = 120  # 同じ色の領域の合計面積(px)がこれ未満なら拾わない（にじみ・ノイズ対策）
+RESCUE_DIST = 70  # 既存の正解色からこれ以上離れている色だけ拾う（採点の許容距離 78 に合わせる）
+RESCUE_MAX_ANSWERS = 14  # 拾った分も含めた正解色（白を除く）の上限。10色を超えたらダミー色は付けない（パレットは折り返して表示される）
 
 # 見本画像と線画の形が違いすぎて自動で色を決められない旗: 領域の位置(キャンバス内の割合)と色を手で指定する
 # (fx, fy, 色) … その点を含む「塗れる領域」をその色にする
@@ -258,7 +264,60 @@ def components(line_gray, ref):
     return labels, area, means
 
 
-def build_palette(page, labels, area, means, ref, min_area=MIN_CLUSTER_AREA, max_answers=MAX_ANSWERS, exclude=()):
+def rescue_small_colors(labels, area, ref, answers, exclude=(), limit=RESCUE_MAX_ANSWERS):
+    """塗れる領域のうち、見本の色が既存の正解色と大きく違うのに、面積が小さくて正解色から漏れたものを拾う。
+    領域ごとに「全画素の中央値」を代表色にする（小さな領域は7x7の侵食で中身が消えるため、べた塗り部分では判定できない）。"""
+    n = len(area)
+    lab = labels.ravel()
+    flat = ref.reshape(-1, 3)
+    order = np.argsort(lab, kind='stable')
+    sl = lab[order]
+    starts = np.searchsorted(sl, np.arange(n))
+    ends = np.searchsorted(sl, np.arange(n), side='right')
+    known = [np.array(a, float) for a in answers] + [np.array([255.0, 255.0, 255.0])]
+    # 黒は「線」と「面（文字など）」を区別する。線（細い黒）は採点で無視されるので、面として黒い画素だけ数える
+    solid_black = (near_black(ref) & ~likely_line(ref)).ravel()
+    black_px = np.bincount(lab, weights=solid_black.astype(float), minlength=n)
+    found = []  # (代表色, 面積)
+    for i in range(1, n):
+        if area[i] < RESCUE_MIN_REGION:
+            continue
+        px = flat[order[starts[i]:ends[i]]].astype(float)
+        med = np.median(px, axis=0)
+        if float((np.linalg.norm(px - med, axis=1) < 30).mean()) < 0.7:
+            continue  # 色が混ざった領域（位置ずれ・にじみ）
+        a = area[i]
+        if near_white(np.array([[med]], np.uint8))[0, 0]:
+            continue  # 白は別扱い
+        if max(med) < 40:
+            if black_px[i] < RESCUE_MIN_BLACK:
+                continue  # 線（細い黒）や、線と線の細いすきま
+            med, a = np.zeros(3), black_px[i]
+        if min(np.linalg.norm(k - med) for k in known) <= RESCUE_DIST:
+            continue
+        found.append((med, a))
+    clusters = []
+    for med, a in sorted(found, key=lambda t: -t[1]):
+        for c in clusters:
+            if np.linalg.norm(c[0] - med) <= MERGE_DIST:
+                c[1] += a
+                break
+        else:
+            clusters.append([med.copy(), a])
+    added = []
+    for med, a in sorted(clusters, key=lambda c: -c[1]):
+        rgb = tuple(np.clip(np.round(med), 0, 255).astype(int))
+        if a < RESCUE_MIN_TOTAL or rgb_to_hex(rgb) in exclude:
+            continue
+        if len(answers) + len(added) >= limit:
+            break
+        if any(np.linalg.norm(np.array(rgb, float) - np.array(x, float)) <= RESCUE_DIST for x in added):
+            continue
+        added.append(rgb)
+    return added
+
+
+def build_palette(page, labels, area, means, ref, min_area=MIN_CLUSTER_AREA, max_answers=MAX_ANSWERS, exclude=(), rescue=False, info=None):
     total = float(labels.size)
     order = [i for i in np.argsort(-area) if i != 0 and area[i] > 0]
     clusters = []  # [weighted_sum(3), area, rep, members]
@@ -305,6 +364,11 @@ def build_palette(page, labels, area, means, ref, min_area=MIN_CLUSTER_AREA, max
             rgb = hex_to_rgb(hx)
             if rgb != (255, 255, 255) and rgb not in answers:
                 answers.append(rgb)
+    n_main = len(answers)
+    if rescue and page not in OVERRIDES:
+        answers += rescue_small_colors(labels, area, ref, answers, exclude=exclude)
+    if info is not None:
+        info['n_main'] = n_main  # answers[:n_main] が従来の方法で決めた色、それ以降が拾い上げた小さな色
 
     swatches = [('白', '#ffffff')]
     used = {'白'}
@@ -399,11 +463,17 @@ def process(page):
         fixed = resolve_points(labels, (0, 0), (W, H), OVERRIDES[page]) if page in OVERRIDES else None
         exclude = set()
         for _ in range(2):
-            swatches, n_real = build_palette(page, labels, area, means, ref, exclude=exclude, **kw)
+            info = {}
+            swatches, n_real = build_palette(page, labels, area, means, ref, exclude=exclude, rescue=True, info=info, **kw)
             actual = paint(labels, area, ref, line, swatches, n_real, fixed)
             # 実際に塗られなかった正解色（にじみ・位置ずれで生まれた色）はパレットから外して作り直す
-            unused = {h for _, h in swatches[1:n_real]
-                      if (np.abs(actual.reshape(-1, 3).astype(int) - np.array(hex_to_rgb(h))).sum(1) == 0).mean() < 0.0005}
+            # （拾い上げた小さな色は、面積が小さいのが当たり前なので「20画素以上塗られていれば」使われたとみなす）
+            flat_actual = actual.reshape(-1, 3).astype(int)
+            unused = set()
+            for k, (_, h) in enumerate(swatches[1:n_real]):
+                n_px = int((np.abs(flat_actual - np.array(hex_to_rgb(h))).sum(1) == 0).sum())
+                if n_px < (0.0005 * len(flat_actual) if k < info['n_main'] else 20):
+                    unused.add(h)
             if not unused:
                 break
             exclude |= unused
@@ -411,7 +481,7 @@ def process(page):
         if mode == 'app':
             app_score = score
         if best is None or score > best['score'] + 1:
-            best = dict(mode=mode, swatches=swatches, n_real=n_real, score=score, missing=miss, passed=passed)
+            best = dict(mode=mode, swatches=swatches, n_real=n_real, n_main=info['n_main'], score=score, missing=miss, passed=passed)
         if mode == 'app' and score >= 90:
             break
     best['app_score'] = app_score if 'app_score' in dir() else 0
