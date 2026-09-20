@@ -6280,3 +6280,104 @@ input[type="checkbox"]:checked::after {
   font-weight: 700;
   line-height: 1.6;
 }
+
+/* スライダーなし（クイズモード／設定でスライダーをオフ）のカラーパレット:
+   選択中の色の右（中央カラム）に、大きめのスウォッチで表示する。
+   `.palette.noSliders.hasSwatches` を結合して、既存の `.paletteDock .palette` 系より詳細度を上げている。 */
+.paletteDock .palette.noSliders.hasSwatches {
+  grid-template-columns: 116px minmax(0, 1fr) auto;
+  grid-template-rows: auto;
+  gap: 8px 20px;
+}
+
+.paletteDock .palette.noSliders.hasSwatches .paletteLeft {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.paletteDock .palette.noSliders.hasSwatches .swatches {
+  grid-column: 2;
+  grid-row: 1;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.paletteDock .palette.noSliders.hasSwatches .swatch {
+  width: 48px;
+  height: 48px;
+}
+
+.paletteDock .palette.noSliders.hasSwatches .paletteActions {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+/* 設定画面の「表示プレビュー」も同じ見た目に */
+.settingsPalettePreview .palette.noSliders.hasSwatches .swatches {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.settingsPalettePreview .palette.noSliders.hasSwatches .swatch {
+  width: 36px;
+  height: 36px;
+}
+
+@media (min-width: 921px) and (max-width: 1180px), (min-width: 921px) and (pointer: coarse) {
+  .app:has(.paletteDock) .palette.noSliders.hasSwatches {
+    grid-template-columns: 112px minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    gap: 4px 14px;
+  }
+
+  .app:has(.paletteDock) .palette.noSliders.hasSwatches .paletteLeft {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .app:has(.paletteDock) .palette.noSliders.hasSwatches .swatches {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .app:has(.paletteDock) .palette.noSliders.hasSwatches .swatch {
+    width: 44px;
+    height: 44px;
+  }
+
+  .app:has(.paletteDock) .palette.noSliders.hasSwatches .paletteActions {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+  }
+}
+
+@media (max-width: 920px) {
+  .paletteDock .palette.noSliders.hasSwatches {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    gap: 10px;
+  }
+
+  .paletteDock .palette.noSliders.hasSwatches .swatches {
+    grid-column: auto;
+    grid-row: auto;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    justify-items: center;
+    gap: 10px;
+  }
+
+  .paletteDock .palette.noSliders.hasSwatches .swatch {
+    width: 100%;
+    max-width: 52px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+  }
+}
