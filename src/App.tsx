@@ -199,12 +199,30 @@ const LEARNING_QUIZ_FALLBACK_SWATCHES: PaletteSwatch[] = [
   { name: '緑', hex: '#1cb5a5' },
   { name: '黒', hex: '#222222' },
 ]
+// クイズのパレットの基本の色数。正解色が少なくても、ダミー色でこの数まで補う（正解色がこれより多ければ増える）
+const QUIZ_PALETTE_SIZE = 10
+// ダミー色の候補。色相がばらけるように用意してあり、正解色に近い色は fillQuizSwatchesWithDummies が自動で除く
 const QUIZ_DUMMY_SWATCHES: PaletteSwatch[] = [
-  { name: 'オレンジ', hex: '#ff9500' },
+  { name: '赤', hex: '#ef6950' },
+  { name: 'オレンジ', hex: '#ff883e' },
+  { name: '黄', hex: '#feb61c' },
+  { name: '薄黄', hex: '#fdeb6a' },
+  { name: '黄緑', hex: '#9bd24a' },
+  { name: '緑', hex: '#3fae49' },
+  { name: '深緑', hex: '#2e6b34' },
+  { name: '青緑', hex: '#1cb5a5' },
   { name: '水色', hex: '#5bc8f2' },
+  { name: '青', hex: '#29a2de' },
+  { name: '紺', hex: '#23408e' },
   { name: '紫', hex: '#af52de' },
+  { name: '薄紫', hex: '#c9a7f0' },
   { name: 'ピンク', hex: '#ff7ab8' },
+  { name: '薄ピンク', hex: '#ffb8cf' },
+  { name: 'えんじ', hex: '#8c2f39' },
   { name: '茶色', hex: '#9b6330' },
+  { name: 'ベージュ', hex: '#e6c9a0' },
+  { name: '灰色', hex: '#9aa0a6' },
+  { name: '黒', hex: '#222222' },
 ]
 
 function App() {
@@ -410,7 +428,14 @@ function App() {
     )
   }, [libraryIllustrations])
   const quizConfigs = useMemo(() => {
-    return { ...QUIZ_CONFIGS, ...fallbackQuizConfigs, ...dynamicQuizConfigs }
+    const merged: Record<string, QuizConfig> = { ...QUIZ_CONFIGS, ...fallbackQuizConfigs, ...dynamicQuizConfigs }
+    // どのクイズも、パレットは基本 QUIZ_PALETTE_SIZE 色（正解色が少ないときはダミー色で補う）
+    return Object.fromEntries(
+      Object.entries(merged).map(([id, config]) => [
+        id,
+        { ...config, swatches: fillQuizSwatchesWithDummies(config.swatches, `${id}:dummy-fill`) } satisfies QuizConfig,
+      ]),
+    ) as Record<string, QuizConfig>
   }, [dynamicQuizConfigs, fallbackQuizConfigs])
 
   const selectedDef = useMemo(() => {
@@ -4271,6 +4296,27 @@ function normalizePaletteSwatches(value: unknown): PaletteSwatch[] {
   return [...incoming, ...fallback.slice(incoming.length)].slice(0, DEFAULT_SWATCHES.length)
 }
 
+// 正解色（と、すでに入っているダミー色）が QUIZ_PALETTE_SIZE 色に満たないとき、ダミー色を足して基本の色数にする。
+// すでにそれ以上ある旗（正解色が多い旗）はそのまま。国旗・国際信号旗・手書き・学習用のすべてのクイズで共通。
+function fillQuizSwatchesWithDummies(swatches: PaletteSwatch[], seedText: string, size = QUIZ_PALETTE_SIZE): PaletteSwatch[] {
+  if (swatches.length >= size) return swatches
+  const result = swatches.map((swatch) => ({ ...swatch }))
+  const candidates = shuffleQuizSwatches(QUIZ_DUMMY_SWATCHES, seedText)
+  const addFrom = (isBlocked: (candidate: PaletteSwatch) => boolean) => {
+    for (const candidate of candidates) {
+      if (result.length >= size) return
+      if (result.some((swatch) => swatch.hex.toLowerCase() === candidate.hex.toLowerCase())) continue
+      if (isBlocked(candidate)) continue
+      result.push({ ...candidate })
+    }
+  }
+  // 1回目: 正解色にも、ほかのダミー色にも紛らわしくない色だけ足す
+  addFrom((candidate) => isConfusingQuizDummy(candidate.hex, result.map((swatch) => swatch.hex)))
+  // 2回目（まだ足りないとき）: 色が近すぎるものだけ除く
+  addFrom((candidate) => result.some((swatch) => colorDistance(hexToRgb(candidate.hex), hexToRgb(swatch.hex)) < 64))
+  return result
+}
+
 function shuffleQuizSwatches(swatches: PaletteSwatch[], seedText: string) {
   const shuffled = swatches.map((swatch) => ({ ...swatch }))
   let seed = 0
@@ -4349,13 +4395,8 @@ async function extractQuizSwatchesFromImage(referenceImage: string): Promise<Pal
       swatches.push({ name: `見本色${swatches.length}`, hex: rgbToHex(bin.color) })
     }
 
-    for (const dummy of shuffleQuizSwatches(QUIZ_DUMMY_SWATCHES, `${referenceImage}:dummy-swatches`)) {
-      if (swatches.length >= 10) break
-      if (isConfusingQuizDummy(dummy.hex, swatches.map((swatch) => swatch.hex))) continue
-      swatches.push(dummy)
-    }
-
-    return swatches.length >= 4 ? swatches : LEARNING_QUIZ_FALLBACK_SWATCHES
+    const filled = fillQuizSwatchesWithDummies(swatches, `${referenceImage}:dummy-swatches`)
+    return filled.length >= 4 ? filled : LEARNING_QUIZ_FALLBACK_SWATCHES
   } catch {
     return LEARNING_QUIZ_FALLBACK_SWATCHES
   }
