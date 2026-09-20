@@ -3836,7 +3836,7 @@ function App() {
             <div className="imagePreviewBody">
               <img src={imagePreview.imageUrl} alt={imagePreview.title} />
             </div>
-            {imagePreview.illustrationId ? (
+            {imagePreview.illustrationId && !isLearningColoring(imagePreview.illustrationId) ? (
               <div className="imagePreviewActions imagePreviewCommunityActions">
                 <button className="btn" type="button" onClick={() => viewCommunityForIllustration(imagePreview.illustrationId!)}>
                   みんなの作品もみてみる
