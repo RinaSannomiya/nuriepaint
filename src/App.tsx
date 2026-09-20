@@ -309,6 +309,16 @@ function App() {
   const [uploadAgreeCopyright, setUploadAgreeCopyright] = useState(false)
   const [uploadAgreePrivacy, setUploadAgreePrivacy] = useState(false)
   const [uploadAgreeDecency, setUploadAgreeDecency] = useState(false)
+  // セーフティーロック（オンのあいだ、ぬりえのアップロード時にパスワードが必要）
+  const [safetyLockEnabled, setSafetyLockEnabled] = useState(false)
+  const [safetyLockBusy, setSafetyLockBusy] = useState(false)
+  const [safetyLockOffOpen, setSafetyLockOffOpen] = useState(false)
+  const [safetyLockOffPassword, setSafetyLockOffPassword] = useState('')
+  const [safetyLockMessage, setSafetyLockMessage] = useState('')
+  const [uploadPasswordOpen, setUploadPasswordOpen] = useState(false)
+  const [uploadPassword, setUploadPassword] = useState('')
+  const [uploadPasswordBusy, setUploadPasswordBusy] = useState(false)
+  const [uploadPasswordError, setUploadPasswordError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<SavedColoring | null>(null)
   const [lineartDeleteTarget, setLineartDeleteTarget] = useState<UploadedLineArt | null>(null)
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null)
@@ -560,8 +570,9 @@ function App() {
     const res = await fetch('/api/me', { credentials: 'include' })
     if (!res.ok) return null
     if (!isJsonResponse(res)) return null
-    const data = (await res.json()) as { user: AuthUser | null; profile?: UserProfile | null }
+    const data = (await res.json()) as { user: AuthUser | null; profile?: UserProfile | null; safetyLock?: boolean }
     setAuthUser(data.user)
+    setSafetyLockEnabled(Boolean(data.user && data.safetyLock))
     setAuthName(data.user?.name ?? '')
     setAuthProfile(data.profile ?? null)
     if (data.profile) {
@@ -1513,6 +1524,9 @@ function App() {
     setUploadAgreeCopyright(false)
     setUploadAgreePrivacy(false)
     setUploadAgreeDecency(false)
+    setUploadPasswordOpen(false)
+    setUploadPassword('')
+    setUploadPasswordError('')
     setUploadPreviewOpen(true)
   }
 
@@ -1522,12 +1536,40 @@ function App() {
     setUploadPreviewUrl(null)
     setUploadPreviewRefUrl(null)
     setUploadPreviewOpen(false)
+    setUploadPasswordOpen(false)
+    setUploadPassword('')
+    setUploadPasswordError('')
   }
 
-  async function confirmUploadLineart() {
+  // 確認画面の「アップロードする」を押したとき。セーフティーロックがオンならパスワード入力を挟む
+  function requestUploadLineart() {
+    if (authUser && safetyLockEnabled) {
+      setUploadPassword('')
+      setUploadPasswordError('')
+      setUploadPasswordOpen(true)
+      return
+    }
+    void confirmUploadLineart()
+  }
+
+  function closeUploadPasswordDialog() {
+    if (uploadPasswordBusy) return
+    setUploadPasswordOpen(false)
+    setUploadPassword('')
+    setUploadPasswordError('')
+  }
+
+  // password を渡したときは、パスワード入力画面を出したまま送信し、成功するまで確認画面を閉じない
+  async function confirmUploadLineart(password?: string) {
     if (!lineartFile) return
-    setUploadPreviewOpen(false)
-    setStatus('アップロード中...')
+    const withPassword = password !== undefined
+    if (withPassword) {
+      setUploadPasswordBusy(true)
+      setUploadPasswordError('')
+    } else {
+      setUploadPreviewOpen(false)
+      setStatus('アップロード中...')
+    }
     const form = new FormData()
     form.set('title', lineartTitle || lineartFile.name.replace(/\.[^.]+$/, ''))
     form.set('image', lineartFile)
@@ -1535,16 +1577,40 @@ function App() {
     form.set('isPublic', 'false')
     form.set('isLearning', String(lineartIsLearning))
     if (lineartIsLearning && lineartReferenceFile) form.set('referenceImage', lineartReferenceFile)
+    if (withPassword) form.set('password', password)
     const res = await fetch('/api/linearts', {
       method: 'POST',
       credentials: 'include',
       body: form,
-    })
+    }).catch(() => null)
+    if (withPassword) setUploadPasswordBusy(false)
+    // パスワードが必要・違う・試しすぎのときは、確認画面を残したままパスワード入力に戻す
+    const rejected = res && !res.ok && isJsonResponse(res)
+      ? ((await res.json().catch(() => null)) as { code?: string; error?: string } | null)
+      : null
+    if (rejected?.code === 'PASSWORD_REQUIRED' || rejected?.code === 'PASSWORD_INVALID' || rejected?.code === 'TOO_MANY_ATTEMPTS') {
+      setSafetyLockEnabled(true)
+      setUploadPreviewOpen(true)
+      setUploadPasswordOpen(true)
+      setUploadPassword('')
+      setUploadPasswordError(withPassword ? rejected.error ?? 'パスワードが違います。' : '')
+      setStatus('')
+      return
+    }
+    if (withPassword && (!res || !res.ok || !isJsonResponse(res))) {
+      setUploadPasswordError('アップロードに失敗しました。もう一度お試しください。')
+      return
+    }
+    if (withPassword) {
+      setUploadPasswordOpen(false)
+      setUploadPassword('')
+      setUploadPreviewOpen(false)
+    }
     if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl)
     if (uploadPreviewRefUrl) URL.revokeObjectURL(uploadPreviewRefUrl)
     setUploadPreviewUrl(null)
     setUploadPreviewRefUrl(null)
-    if (!res.ok || !isJsonResponse(res)) {
+    if (!res || !res.ok || !isJsonResponse(res)) {
       setStatus('アップロードに失敗しました。')
       return
     }
@@ -1879,6 +1945,41 @@ function App() {
     setAuthEmail(email)
     setStatus(authMode === 'forgotSent' ? '再設定メールをもう一度送りました。' : '')
     setAuthMode('forgotSent')
+  }
+
+  // セーフティーロックのオンオフを保存する（オフにするときだけパスワードが必要）
+  async function saveSafetyLock(enabled: boolean, password?: string) {
+    if (safetyLockBusy) return
+    setSafetyLockBusy(true)
+    setSafetyLockMessage('')
+    const res = await fetch('/api/safety-lock', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ enabled, password }),
+    }).catch(() => null)
+    const body = res && isJsonResponse(res) ? ((await res.json().catch(() => null)) as { error?: string } | null) : null
+    setSafetyLockBusy(false)
+    if (!res || !res.ok) {
+      setSafetyLockMessage(body?.error ?? '設定を変更できませんでした。しばらくしてからもう一度お試しください。')
+      return
+    }
+    setSafetyLockEnabled(enabled)
+    setSafetyLockOffOpen(false)
+    setSafetyLockOffPassword('')
+    setSafetyLockMessage(enabled ? 'セーフティーロックをオンにしました。' : 'セーフティーロックをオフにしました。')
+  }
+
+  function toggleSafetyLock() {
+    if (safetyLockBusy) return
+    if (!safetyLockEnabled) {
+      void saveSafetyLock(true)
+      return
+    }
+    // オフにするときは、パスワードの入力欄を開く
+    setSafetyLockMessage('')
+    setSafetyLockOffPassword('')
+    setSafetyLockOffOpen((open) => !open)
   }
 
   // ログイン中のアカウント画面の「パスワードを変更する」から（登録メールアドレスに送る）
@@ -3382,6 +3483,57 @@ function App() {
                     ) : null}
                     {accountPasswordMessage ? <p className="accountSettingMessage">{accountPasswordMessage}</p> : null}
                   </section>
+                  <section className="accountSecuritySection safetyLockSection" aria-label="セーフティーロック">
+                    <div className="accountSectionHead">
+                      <div>
+                        <h3>セーフティーロック</h3>
+                        <p>オンにすると、ぬりえをアップロードするときにアカウントのパスワードが必要になります。</p>
+                      </div>
+                      <button
+                        className={`publishToggle safetyLockToggle ${safetyLockEnabled ? 'publishToggleOn' : 'publishToggleOff'}`}
+                        type="button"
+                        role="switch"
+                        aria-checked={safetyLockEnabled}
+                        onClick={toggleSafetyLock}
+                        disabled={safetyLockBusy}
+                      >
+                        <span className="publishToggleTrack" aria-hidden="true">
+                          <span className="publishToggleKnob" />
+                        </span>
+                        <span>{safetyLockEnabled ? 'オン' : 'オフ'}</span>
+                      </button>
+                    </div>
+                    {safetyLockOffOpen ? (
+                      <div
+                        className="accountInlineForm"
+                        onKeyDown={(ev) => {
+                          if (ev.key === 'Enter' && safetyLockOffPassword) {
+                            ev.preventDefault()
+                            void saveSafetyLock(false, safetyLockOffPassword)
+                          }
+                        }}
+                      >
+                        <p className="accountSettingMessage">オフにするには、アカウントのパスワードを入力してください。</p>
+                        <label className="field">
+                          <span>パスワード</span>
+                          <PasswordInput
+                            value={safetyLockOffPassword}
+                            onChange={(ev) => setSafetyLockOffPassword(ev.target.value)}
+                            autoComplete="current-password"
+                          />
+                        </label>
+                        <button
+                          className="btn primaryAction"
+                          type="button"
+                          onClick={() => void saveSafetyLock(false, safetyLockOffPassword)}
+                          disabled={!safetyLockOffPassword || safetyLockBusy}
+                        >
+                          ロックをオフにする
+                        </button>
+                      </div>
+                    ) : null}
+                    {safetyLockMessage ? <p className="accountSettingMessage" role="status">{safetyLockMessage}</p> : null}
+                  </section>
                 </>
               ) : null}
               {(authMode === 'profile' && accountProfileEditing) || authMode === 'signupProfile' ? (
@@ -3897,12 +4049,51 @@ function App() {
                 className="btn primaryAction uploadSubmitButton"
                 type="button"
                 disabled={!uploadAgreeCopyright || !uploadAgreePrivacy || !uploadAgreeDecency}
-                onClick={confirmUploadLineart}
+                onClick={requestUploadLineart}
               >
                 アップロードする
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+      {uploadPreviewOpen && uploadPreviewUrl && uploadPasswordOpen ? (
+        <div className="modalOverlay safetyLockOverlay" role="dialog" aria-modal="true" aria-label="パスワードの確認">
+          <form
+            className="modal confirmPanel safetyLockDialog"
+            onSubmit={(ev) => {
+              ev.preventDefault()
+              if (uploadPassword && !uploadPasswordBusy) void confirmUploadLineart(uploadPassword)
+            }}
+          >
+            <div className="modalHead">
+              <div>
+                <div className="modalTitle">パスワードを入力してください</div>
+                <div className="modalSub">セーフティーロックがオンになっています。</div>
+              </div>
+            </div>
+            <div className="confirmBody">
+              <p>ぬりえをアップロードするには、アカウントのパスワードが必要です。</p>
+              <label className="field">
+                <span>パスワード</span>
+                <PasswordInput
+                  value={uploadPassword}
+                  onChange={(ev) => setUploadPassword(ev.target.value)}
+                  autoComplete="current-password"
+                  autoFocus
+                />
+              </label>
+              {uploadPasswordError ? <p className="safetyLockError" role="alert">{uploadPasswordError}</p> : null}
+              <div className="confirmActions">
+                <button className="btn" type="button" onClick={closeUploadPasswordDialog} disabled={uploadPasswordBusy}>
+                  キャンセル
+                </button>
+                <button className="btn primaryAction" type="submit" disabled={!uploadPassword || uploadPasswordBusy}>
+                  {uploadPasswordBusy ? 'アップロード中...' : 'アップロード'}
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
       ) : null}
       {contactOpen ? (

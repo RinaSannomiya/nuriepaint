@@ -1,3 +1,4 @@
+import { verifyPassword } from 'better-auth/crypto'
 import { createAuth, type Env } from './auth'
 
 type SessionUser = {
@@ -119,7 +120,33 @@ export default {
       const session = await getSessionUser(request, env)
       if (!session) return json({ user: null, profile: null })
       const profile = await getUserProfile(env, session.id)
-      return json({ user: session, profile })
+      const safetyLock = await isSafetyLockEnabled(env, session.id)
+      return json({ user: session, profile, safetyLock })
+    }
+
+    // セーフティーロックのオンオフ。オフにするときだけパスワードが必要（オンにするのは誰でもできる）
+    if (url.pathname === '/api/safety-lock' && request.method === 'PUT') {
+      const user = await requireUser(request, env)
+      if (user instanceof Response) return user
+      const body = await request.json().catch(() => ({})) as { enabled?: unknown; password?: unknown }
+      if (typeof body.enabled !== 'boolean') return json({ error: '設定が正しくありません。' }, 400)
+      const now = new Date().toISOString()
+
+      if (!body.enabled && (await isSafetyLockEnabled(env, user.id))) {
+        const failure = await checkAccountPassword(env, user.id, body.password)
+        if (failure) return failure
+      }
+
+      await env.DB.prepare(
+        `INSERT INTO user_safety_lock (user_id, enabled, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           enabled = excluded.enabled,
+           updated_at = excluded.updated_at`,
+      )
+        .bind(user.id, body.enabled ? 1 : 0, now)
+        .run()
+      return json({ safetyLock: body.enabled })
     }
 
     if (url.pathname === '/api/account' && request.method === 'DELETE') {
@@ -162,6 +189,7 @@ export default {
       await env.DB.prepare(`DELETE FROM user_palette_settings WHERE user_id = ?`).bind(user.id).run()
       await env.DB.prepare(`DELETE FROM quiz_attempts WHERE user_id = ?`).bind(user.id).run()
       await env.DB.prepare(`DELETE FROM user_profiles WHERE user_id = ?`).bind(user.id).run()
+      await env.DB.prepare(`DELETE FROM user_safety_lock WHERE user_id = ?`).bind(user.id).run()
       await env.DB.prepare(`DELETE FROM session WHERE userId = ?`).bind(user.id).run()
       await env.DB.prepare(`DELETE FROM account WHERE userId = ?`).bind(user.id).run()
       await env.DB.prepare(`DELETE FROM user WHERE id = ?`).bind(user.id).run()
@@ -611,6 +639,11 @@ export default {
       const user = await requireUser(request, env)
       if (user instanceof Response) return user
       const form = await request.formData()
+      // セーフティーロックがオンのときは、パスワードが合っていないとアップロードできない
+      if (await isSafetyLockEnabled(env, user.id)) {
+        const failure = await checkAccountPassword(env, user.id, form.get('password'))
+        if (failure) return failure
+      }
       const file = form.get('image')
       const referenceFile = form.get('referenceImage')
       const title = String(form.get('title') || 'アップロードぬりえ')
@@ -952,6 +985,59 @@ async function getUserProfile(env: Env, userId: string) {
     imageUrl: row.icon_object_key ? `/api/profile-icons/${userId}?v=${encodeURIComponent(row.updated_at)}` : `/profile-motifs/${row.motif_id}.png`,
     updatedAt: row.updated_at,
   }
+}
+
+// パスワードを続けて間違えたときに、しばらく試せなくする回数と時間
+const SAFETY_LOCK_MAX_FAILURES = 5
+const SAFETY_LOCK_COOLDOWN_MS = 5 * 60 * 1000
+
+async function isSafetyLockEnabled(env: Env, userId: string) {
+  const row = await env.DB.prepare(`SELECT enabled FROM user_safety_lock WHERE user_id = ?`)
+    .bind(userId)
+    .first<{ enabled: number }>()
+  return Boolean(row?.enabled)
+}
+
+// ログイン中のアカウントのパスワードが合っているか確認する。
+// 合っていれば null、だめなら返すべきエラーレスポンスを返す。
+// （セーフティーロックの解除・アップロード用。総当たりで試されないよう、続けて間違えるとしばらく確認できなくする）
+async function checkAccountPassword(env: Env, userId: string, password: unknown): Promise<Response | null> {
+  if (typeof password !== 'string' || !password) {
+    return json({ error: 'パスワードを入力してください。', code: 'PASSWORD_REQUIRED' }, 403)
+  }
+  const now = Date.now()
+  const state = await env.DB.prepare(`SELECT failed_count, locked_until FROM user_safety_lock WHERE user_id = ?`)
+    .bind(userId)
+    .first<{ failed_count: number; locked_until: number | null }>()
+  if (state?.locked_until && state.locked_until > now) {
+    const minutes = Math.max(1, Math.ceil((state.locked_until - now) / 60000))
+    return json({ error: `パスワードを間違えた回数が多いため、あと${minutes}分ほどたってからお試しください。`, code: 'TOO_MANY_ATTEMPTS' }, 429)
+  }
+
+  const account = await env.DB.prepare(`SELECT password FROM account WHERE userId = ? AND providerId = 'credential'`)
+    .bind(userId)
+    .first<{ password: string | null }>()
+  const ok = Boolean(account?.password) && (await verifyPassword({ hash: account!.password!, password }).catch(() => false))
+
+  if (ok) {
+    if (state && (state.failed_count || state.locked_until)) {
+      await env.DB.prepare(`UPDATE user_safety_lock SET failed_count = 0, locked_until = NULL WHERE user_id = ?`).bind(userId).run()
+    }
+    return null
+  }
+
+  const failedCount = (state?.locked_until && state.locked_until <= now ? 0 : state?.failed_count ?? 0) + 1
+  const lockNow = failedCount >= SAFETY_LOCK_MAX_FAILURES
+  await env.DB.prepare(
+    `INSERT INTO user_safety_lock (user_id, enabled, failed_count, locked_until, updated_at)
+     VALUES (?, 0, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET
+       failed_count = excluded.failed_count,
+       locked_until = excluded.locked_until`,
+  )
+    .bind(userId, lockNow ? 0 : failedCount, lockNow ? now + SAFETY_LOCK_COOLDOWN_MS : null, new Date().toISOString())
+    .run()
+  return json({ error: 'パスワードが違います。', code: 'PASSWORD_INVALID' }, 403)
 }
 
 async function isLibraryLearningColoring(env: Env, illustrationId: string) {

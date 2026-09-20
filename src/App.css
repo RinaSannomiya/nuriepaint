@@ -6259,3 +6259,24 @@ input[type="checkbox"]:checked::after {
   opacity: 0.5;
   cursor: default;
 }
+
+/* セーフティーロック（アカウント画面のトグルと、アップロード時のパスワード入力） */
+.safetyLockSection .accountSectionHead {
+  align-items: flex-start;
+}
+
+.publishToggle.safetyLockToggle {
+  flex: 0 0 auto;
+  background: #fff;
+}
+
+.modal.safetyLockDialog {
+  width: min(420px, 94vw);
+}
+
+.safetyLockDialog .confirmBody p.safetyLockError {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+}
