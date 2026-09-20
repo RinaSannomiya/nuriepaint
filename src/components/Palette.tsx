@@ -1,5 +1,5 @@
 import { useMemo, type CSSProperties, type ReactNode } from 'react'
-import { hexToHsl, hexToRgb, hslToHex, rgbToHex } from '../lib/color'
+import { hexToHsl, hexToRgb, hslToHex, isWhiteColor, rgbToHex } from '../lib/color'
 
 export const DEFAULT_SWATCHES: { name: string; hex: string }[] = [
   { name: '赤', hex: '#ff3b30' },
@@ -44,7 +44,7 @@ export function Palette(props: {
   return (
     <div className={`palette ${showSwatches ? 'hasSwatches' : 'noSwatches'} ${showSliders ? 'hasSliders' : 'noSliders'}`}>
       <div className="paletteLeft">
-        <div className="colorChip" style={{ background: liveHex }} aria-label={`選択中の色: ${liveHex}`} />
+        <div className={`colorChip${isWhiteColor(liveHex) ? ' isWhite' : ''}`} style={{ background: liveHex }} aria-label={`選択中の色: ${liveHex}`} />
         <div className="colorMeta">
           <div className="colorLabel">選択中</div>
           <div className="colorValue">{liveHex}</div>
@@ -91,7 +91,7 @@ export function Palette(props: {
             <button
               key={`${sw.name}-${sw.hex}`}
               type="button"
-              className="swatch"
+              className={`swatch${isWhiteColor(sw.hex) ? ' isWhite' : ''}`}
               style={{ background: sw.hex }}
               title={sw.name}
               onClick={() => props.onChange(sw.hex)}

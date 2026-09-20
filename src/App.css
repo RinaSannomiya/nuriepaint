@@ -6381,3 +6381,13 @@ input[type="checkbox"]:checked::after {
     border-radius: 12px;
   }
 }
+
+/* 白（#ffffff）の色は背景と同化して見えないので、薄いグレーの細い線で囲う。
+   inset の box-shadow は白い縁取り（border）の内側＝色が見える範囲のふちに描かれるので、
+   他の色と同じ見た目の大きさのまま線だけが付く。
+   `.swatch` などの既存ルールより詳細度が上になるよう、クラスを結合している。 */
+.swatch.isWhite,
+.colorChip.isWhite,
+.mobileCurrentColor span.isWhite {
+  box-shadow: inset 0 0 0 1px #cfd4dc;
+}

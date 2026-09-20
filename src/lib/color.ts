@@ -19,6 +19,13 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } | nul
   }
 }
 
+// 白（#ffffff）かどうか。白は背景と同化して見えないので、UI側で薄いグレーの枠線を付けるために使う
+export function isWhiteColor(hex: string | null | undefined) {
+  if (!hex) return false
+  const rgb = hexToRgb(hex)
+  return rgb ? rgb.r === 255 && rgb.g === 255 && rgb.b === 255 : false
+}
+
 // h: 0..360, s/l: 0..100
 export function hslToHex(h: number, s: number, l: number) {
   const _h = (((h % 360) + 360) % 360) / 360

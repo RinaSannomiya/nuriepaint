@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import { DEFAULT_SWATCHES, Palette } from './components/Palette'
 import { IllustrationThumb } from './components/IllustrationThumb'
 import { Sidebar } from './components/Sidebar'
+import { isWhiteColor } from './lib/color'
 import { Stage } from './components/Stage'
 import { ILLUSTRATIONS, ILLUSTRATION_CATEGORIES, type IllustrationCategory, type IllustrationDef } from './illustrations/illustrations'
 import { FLAG_QUIZ_DATA } from './illustrations/flagQuizData'
@@ -2323,7 +2324,7 @@ function App() {
           <footer className={`paletteDock ${mobilePaletteOpen ? 'openPaletteDock' : 'closedPaletteDock'}`}>
             <div className="mobilePaletteToolbar" aria-label="色とツール">
               <div className="mobileCurrentColor" aria-label={`選択中の色: ${color}`}>
-                <span style={{ background: color }} aria-hidden="true" />
+                <span className={isWhiteColor(color) ? 'isWhite' : undefined} style={{ background: color }} aria-hidden="true" />
                 <strong>{color}</strong>
               </div>
               <button className="btn iconButton mobileUndoButton" type="button" onClick={undo} disabled={undoDisabled} aria-label="戻る" title="戻る">
@@ -3131,7 +3132,7 @@ function App() {
                     <div className="editableSwatches" aria-label="現在のカラーパレット">
                       {customSwatches.map((swatch, index) => (
                         <button
-                          className={`swatch editableSwatch ${selectedSwatchIndex === index ? 'activeEditableSwatch' : ''}`}
+                          className={`swatch editableSwatch ${selectedSwatchIndex === index ? 'activeEditableSwatch' : ''}${isWhiteColor(swatch.hex) ? ' isWhite' : ''}`}
                           type="button"
                           key={`${swatch.name}-${index}`}
                           style={{ background: swatch.hex }}
@@ -3608,7 +3609,7 @@ function App() {
                     <div className="profilePalette">
                       <div className="profilePaletteToolbar" aria-label="プロフィールアイコンの色操作">
                         <div className="profileCurrentColor">
-                          <span className="colorChip" style={{ background: authIconColor }} aria-label={`選択中の色: ${authIconColor}`} />
+                          <span className={`colorChip${isWhiteColor(authIconColor) ? ' isWhite' : ''}`} style={{ background: authIconColor }} aria-label={`選択中の色: ${authIconColor}`} />
                           <strong>{authIconColor}</strong>
                         </div>
                         <div className="profilePaletteActions">
