@@ -1,5 +1,6 @@
 import type { PointerEvent, ReactNode } from 'react'
 import { FLAG_DATA } from './flagData'
+import { SIGNAL_FLAG_DATA } from './signalFlagData'
 import { Apple } from './svgs/Apple'
 import { Blueberry } from './svgs/Blueberry'
 import { Grape } from './svgs/Grape'
@@ -124,6 +125,25 @@ const FLAG_ILLUSTRATIONS: IllustrationDef[] = FLAG_DATA.map((flag) => {
     ),
   }
 })
+
+// 国際信号旗。線画の大きさ・位置は国旗と同じなので、同じ切り出し範囲（FLAG_RASTER_CROP）を使う
+const SIGNAL_FLAG_ILLUSTRATIONS: IllustrationDef[] = SIGNAL_FLAG_DATA.map((flag) => ({
+  id: `signal-flag-${flag.page}`,
+  title: flag.title,
+  subtitle: flag.subtitle,
+  thumbnailImage: `/lineart/signal-flags/signal-${flag.page}.png`,
+  referenceImage: `/lineart/signal-flags-colored/signal-${flag.page}.png`,
+  raster: true,
+  rasterCrop: FLAG_RASTER_CROP,
+  node: (props) => (
+    <RasterLineArt
+      {...props}
+      title={flag.title}
+      source={`/lineart/signal-flags/signal-${flag.page}.png`}
+      crop={FLAG_RASTER_CROP}
+    />
+  ),
+}))
 
 const SNACK_DATA = [
   { page: '01', title: 'ドーナツ', subtitle: 'Donut' },
@@ -511,6 +531,7 @@ export const ILLUSTRATIONS: IllustrationDef[] = [
   ...ANIMAL_ILLUSTRATIONS,
   ...SNACK_ILLUSTRATIONS,
   ...FLAG_ILLUSTRATIONS,
+  ...SIGNAL_FLAG_ILLUSTRATIONS,
   ...CLOTHES_ILLUSTRATIONS,
   ...HOME_THINGS_ILLUSTRATIONS,
   ...VEHICLE_ILLUSTRATIONS,
@@ -549,6 +570,12 @@ export const ILLUSTRATION_CATEGORIES: IllustrationCategory[] = [
     title: '国旗',
     subtitle: '',
     illustrationIds: FLAG_ILLUSTRATIONS.map((it) => it.id),
+  },
+  {
+    id: 'signal-flags',
+    title: '国際信号旗',
+    subtitle: '',
+    illustrationIds: SIGNAL_FLAG_ILLUSTRATIONS.map((it) => it.id),
   },
   { id: 'clothes', title: 'ようふく', subtitle: '', illustrationIds: CLOTHES_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'home-things', title: 'おうち', subtitle: '', illustrationIds: HOME_THINGS_ILLUSTRATIONS.map((it) => it.id) },

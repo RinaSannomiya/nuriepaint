@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar'
 import { Stage } from './components/Stage'
 import { ILLUSTRATIONS, ILLUSTRATION_CATEGORIES, type IllustrationCategory, type IllustrationDef } from './illustrations/illustrations'
 import { FLAG_QUIZ_DATA } from './illustrations/flagQuizData'
+import { SIGNAL_FLAG_QUIZ_DATA } from './illustrations/signalFlagQuizData'
 import { RasterLineArt, type RasterPaintCommand } from './illustrations/svgs/RasterLineArt'
 
 type FillMap = Record<string, string>
@@ -142,7 +143,7 @@ type QuizCategoryProgress = {
   totalCount: number
 }
 
-const QUIZ_CATEGORY_IDS = new Set(['flags'])
+const QUIZ_CATEGORY_IDS = new Set(['flags', 'signal-flags'])
 const PROFILE_MOTIFS: ProfileMotif[] = [
   { id: 'boy', label: 'おとこのこ', imageUrl: '/profile-motifs/boy.png' },
   { id: 'girl', label: 'おんなのこ', imageUrl: '/profile-motifs/girl.png' },
@@ -156,6 +157,8 @@ const PROFILE_ICON_COLORS = ['#EF6950', '#FEB61C', '#29A2DE', '#1CB5A5', '#FDEB6
 const QUIZ_CONFIGS: Record<string, QuizConfig> = {
   // 国旗のクイズ用パレットは見本画像から自動生成（scripts/generate-flag-quiz-data.py）。手書きの定義は下で上書きされる
   ...FLAG_QUIZ_DATA,
+  // 国際信号旗のクイズ用パレットも見本画像から自動生成（scripts/generate-signal-flag-quiz-data.py）
+  ...SIGNAL_FLAG_QUIZ_DATA,
   'flag-001': {
     passingScore: 88,
     swatches: [
@@ -1619,7 +1622,7 @@ function App() {
   }
 
   function isLearningColoring(illustrationId: string) {
-    if (illustrationId.startsWith('flag-')) return true
+    if (illustrationId.startsWith('flag-') || illustrationId.startsWith('signal-flag-')) return true
     const lineart = libraryByIllustrationId.get(illustrationId)
     return Boolean(lineart?.isLearning)
   }
