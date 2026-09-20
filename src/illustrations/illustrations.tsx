@@ -199,7 +199,6 @@ const ANIMAL_ILLUSTRATIONS: IllustrationDef[] = ANIMAL_DATA.map((animal) => ({
   title: animal.title,
   subtitle: animal.subtitle,
   thumbnailImage: `/lineart/animals/thumbs/animal-${animal.page}.png`,
-  referenceImage: `/lineart/animals-colored/animal-${animal.page}.png`,
   raster: true,
   node: (props) => (
     <RasterLineArt
