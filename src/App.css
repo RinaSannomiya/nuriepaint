@@ -3629,59 +3629,6 @@ input[type="checkbox"]:checked::after {
   color: var(--accent-red-dark);
 }
 
-.accountQuizProgress {
-  display: grid;
-  gap: 10px;
-  border-radius: 20px;
-  background: #fff;
-  padding: 14px;
-}
-
-.accountQuizProgress h3 {
-  margin: 0;
-  color: var(--ink);
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.accountQuizProgress p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.quizProgressList {
-  display: grid;
-  gap: 8px;
-}
-
-.quizProgressItem {
-  border-radius: 16px;
-  background: #f6fafc;
-  padding: 10px 12px;
-}
-
-.quizProgressItem summary {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.quizProgressItem summary::marker {
-  color: #29a2de;
-}
-
-.quizProgressItem strong {
-  color: #1cb5a5;
-  font-size: 18px;
-}
-
 .learnedMiniGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
@@ -7022,24 +6969,13 @@ input[type="checkbox"]:checked::after {
   line-height: 28px;
 }
 
-/* アカウント画面: クイズ成績の要約と、一覧ページへのボタン */
-.quizProgressItem.quizProgressRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.accountQuizProgress .btn.accountRecordButton {
-  justify-self: start;
+/* アカウント画面: 「ぬりえの記録」ページへのボタン */
+.accountRecordLink .btn.accountRecordButton {
   background: var(--accent-blue);
   color: #fff;
 }
 
-.accountQuizProgress .btn.accountRecordButton:hover {
+.accountRecordLink .btn.accountRecordButton:hover {
   background: var(--accent-blue-dark);
 }
 

@@ -160,13 +160,6 @@ type RecordCategory = {
   savedCount: number
   learnedCount: number
 }
-type QuizCategoryProgress = {
-  category: IllustrationCategory
-  rate: number
-  learned: IllustrationDef[]
-  attemptedCount: number
-  totalCount: number
-}
 
 // チャレンジモード: カテゴリーのぬりえ一覧画面で、出題数と難易度を決めて、そのカテゴリーからランダムに出題する
 type ChallengeDifficulty = 'easy' | 'normal' | 'hard'
@@ -584,31 +577,6 @@ function App() {
   // クイズモードがオンのときは「クイズに正解した（緑）」、オフのときは「マイギャラリーに保存した（コーラルレッド）」チェックを出す
   const checkKind = quizSelectionArmed ? 'learned' : 'saved'
   const checkedIds = quizSelectionArmed ? learnedQuizIds : savedIllustrationIds
-  const quizCategoryProgress = useMemo<QuizCategoryProgress[]>(() => {
-    const attemptsByCategory = new Map<string, QuizAttempt[]>()
-    for (const attempt of quizAttempts) {
-      attemptsByCategory.set(attempt.categoryId, [...(attemptsByCategory.get(attempt.categoryId) ?? []), attempt])
-    }
-
-    return learnCategories
-      .map((category) => {
-        const quizIds = category.illustrationIds.filter((id) => quizConfigs[id])
-        const attempts = attemptsByCategory.get(category.id) ?? []
-        const attemptedIds = new Set(attempts.map((attempt) => attempt.illustrationId))
-        const learned = quizIds
-          .filter((id) => learnedQuizIds.has(id))
-          .map((id) => allIllustrations.find((it) => it.id === id))
-          .filter((it): it is IllustrationDef => Boolean(it))
-        return {
-          category,
-          rate: quizIds.length ? Math.round((learned.length / quizIds.length) * 100) : 0,
-          learned,
-          attemptedCount: attemptedIds.size,
-          totalCount: quizIds.length,
-        }
-      })
-      .filter((progress) => progress.attemptedCount > 0)
-  }, [allIllustrations, learnCategories, learnedQuizIds, quizAttempts, quizConfigs])
   // 「ぬりえの記録」ページ用: カテゴリーごとに、ぬりえ全部の「ぬった（マイギャラリーに保存ずみ）」「クイズせいかい」を並べる
   const recordLearnCategories = useMemo(
     () => buildRecordCategories(learnCategories, (id) => Boolean(quizConfigs[id]), illustrationById, savedIllustrationIds, learnedQuizIds, firstLearnedAtById),
@@ -4270,24 +4238,11 @@ function App() {
                 </>
               ) : null}
               {authMode === 'profile' && !accountProfileEditing ? (
-                <section className="accountQuizProgress" aria-labelledby="account-quiz-progress">
-                  <h3 id="account-quiz-progress">クイズモードの成績</h3>
-                  {quizCategoryProgress.length ? (
-                    <div className="quizProgressList">
-                      {quizCategoryProgress.map((progress) => (
-                        <div className="quizProgressItem quizProgressRow" key={progress.category.id}>
-                          <span>{progress.category.title}</span>
-                          <strong>{progress.rate}%</strong>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p>クイズモードに挑戦すると、ここに達成率が表示されます。</p>
-                  )}
+                <div className="accountRecordLink">
                   <button className="btn accountRecordButton" type="button" onClick={() => openRecordPage({ rememberReturn: true })}>
                     {RECORD_PAGE_TITLE}を見る
                   </button>
-                </section>
+                </div>
               ) : null}
               {(authMode === 'signin' || authMode === 'signup') ? (
                 <>
