@@ -4239,14 +4239,14 @@ function App() {
             </div>
             {(imagePreview.illustrationId && !isLearningColoring(imagePreview.illustrationId)) || imagePreview.continueItem ? (
               <div className={`imagePreviewActions imagePreviewCommunityActions ${imagePreview.continueItem ? 'hasContinue' : ''}`}>
-                {imagePreview.illustrationId && !isLearningColoring(imagePreview.illustrationId) ? (
-                  <button className="btn imagePreviewCommunityButton" type="button" onClick={() => viewCommunityForIllustration(imagePreview.illustrationId!)}>
-                    みんなの作品もみてみる
-                  </button>
-                ) : null}
                 {imagePreview.continueItem ? (
                   <button className="btn imagePreviewContinueButton" type="button" onClick={() => continueColoring(imagePreview.continueItem!)}>
                     続きから
+                  </button>
+                ) : null}
+                {imagePreview.illustrationId && !isLearningColoring(imagePreview.illustrationId) ? (
+                  <button className="btn imagePreviewCommunityButton" type="button" onClick={() => viewCommunityForIllustration(imagePreview.illustrationId!)}>
+                    みんなの作品もみてみる
                   </button>
                 ) : null}
               </div>
