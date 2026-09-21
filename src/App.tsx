@@ -1971,7 +1971,6 @@ function App() {
     const poolSize = challengePoolIds.length
     if (!poolSize) return null
     const count = Math.max(1, Math.min(challengeCount, poolSize))
-    const savedInPool = challengePoolIds.filter((id) => savedIllustrationIds.has(id)).length
     const changeCount = (value: number) => setChallengeCount(Math.max(1, Math.min(poolSize, Math.round(value))))
     // ドラムロールのほかに、よく使う出題数をワンタップで選べるようにする（カテゴリーの問題数より少ないものだけ）
     const presetCounts = CHALLENGE_PRESET_COUNTS.filter((n) => n < poolSize)
@@ -2007,8 +2006,6 @@ function App() {
                   全問
                 </button>
               </div>
-              <p className="challengeSetupNote">このカテゴリーには全部で{poolSize}問あります。</p>
-              {savedInPool > 0 ? <p className="challengeSetupNote">マイギャラリーに保存したぬりえ（{savedInPool}枚）を優先して出題します。</p> : null}
             </section>
             <section className="challengeSetupSection" aria-labelledby="challenge-difficulty-label">
               <div className="challengeSetupLabel">

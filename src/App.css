@@ -6487,14 +6487,6 @@ input[type="checkbox"]:checked::after {
   color: var(--accent);
 }
 
-.challengeSetupNote {
-  margin: 0;
-  text-align: center;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
-}
-
 .challengeDifficulty {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
