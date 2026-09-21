@@ -5,7 +5,7 @@ import { IllustrationThumb } from './IllustrationThumb'
 export type ChallengeAnswered = { illustration: IllustrationDef | null; correct: boolean }
 
 // チャレンジモード中、左のイラスト一覧の代わりに出す「進み具合」の表示。
-// 何問中何問目か・正解数・答え合わせが終わったぬりえの見本（新しい順）・リセット（1問目からやりなおし）
+// 何問中何問目か・正解数・答え合わせが終わったぬりえの見本（1問目が上、下へ順番に）・リセット（1問目からやりなおし）
 export function ChallengeSidebar(props: {
   total: number
   current: number
@@ -14,7 +14,7 @@ export function ChallengeSidebar(props: {
   onReset: () => void
 }) {
   const done = props.answered.length
-  const items = props.answered.map((item, index) => ({ ...item, number: index + 1 })).reverse()
+  const items = props.answered.map((item, index) => ({ ...item, number: index + 1 }))
   return (
     <div className="sidebar challengeSidebar">
       <div className="sidebarTitle">
