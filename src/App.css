@@ -6668,7 +6668,6 @@ input[type="checkbox"]:checked::after {
 }
 
 /* 1問ごとの結果・最終結果のポップアップ */
-.challengeResultPanel .quizScoreBadge.missedQuiz,
 .challengeResultPanel .quizScoreBadge.longScore {
   font-size: 22px;
 }

@@ -2123,8 +2123,8 @@ function App() {
               </div>
             </div>
             <div className="quizResultBody">
-              <div className={`quizScoreBadge ${lastCorrect ? 'passedQuiz' : 'missedQuiz'}`}>
-                {lastCorrect ? '正解！' : '不正解'}
+              <div className={`quizScoreBadge ${lastCorrect ? 'passedQuiz' : ''}`}>
+                {lastCorrect ? '正解！' : `${challenge.lastScore}%`}
               </div>
               <p>{lastCorrect ? 'よくできました！' : 'ざんねん！'}</p>
               <div className="quizResultStats challengeStatsTwo">
