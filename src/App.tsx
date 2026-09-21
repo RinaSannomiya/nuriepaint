@@ -7,6 +7,7 @@ import { CheckBadge } from './components/CheckBadge'
 import { ChallengeSidebar } from './components/ChallengeSidebar'
 import { DrumRoll } from './components/DrumRoll'
 import { isWhiteColor } from './lib/color'
+import { useMediaQuery } from './lib/useMediaQuery'
 import { Stage } from './components/Stage'
 import { ILLUSTRATIONS, ILLUSTRATION_CATEGORIES, type IllustrationCategory, type IllustrationDef } from './illustrations/illustrations'
 import { FLAG_QUIZ_DATA } from './illustrations/flagQuizData'
@@ -370,6 +371,9 @@ function App() {
   const [gallerySortDirection, setGallerySortDirection] = useState<SortDirection>('desc')
   const [galleryPublishFilter, setGalleryPublishFilter] = useState<'all' | 'public' | 'private'>('all')
   const [activeGalleryCategoryId, setActiveGalleryCategoryId] = useState<string | null>(null)
+  // スマホ(〜920px)のマイギャラリー「カテゴリー別」: null=カテゴリーのカード一覧、id=そのカテゴリーの作品一覧
+  const [galleryPhoneCategoryId, setGalleryPhoneCategoryId] = useState<string | null>(null)
+  const isPhoneLayout = useMediaQuery('(max-width: 920px)')
   const [savedColorings, setSavedColorings] = useState<SavedColoring[]>([])
   const [publicColorings, setPublicColorings] = useState<PublicColoring[]>([])
   const [publicLinearts, setPublicLinearts] = useState<PublicLineArt[]>([])
@@ -700,6 +704,15 @@ function App() {
     return savedGallerySections.find((section) => section.id === activeGalleryCategoryId) ?? savedGallerySections[0] ?? null
   }, [activeGalleryCategoryId, galleryGroupMode, savedGallerySections])
 
+  // スマホ: カテゴリー別のときは「カテゴリーのカード一覧 → 作品一覧 →『カテゴリー選択へ』で戻る」
+  const galleryPhoneCategoryMode = isPhoneLayout && galleryGroupMode === 'category'
+  const galleryPhoneSection = useMemo(
+    () => (galleryPhoneCategoryMode ? savedGallerySections.find((section) => section.id === galleryPhoneCategoryId) ?? null : null),
+    [galleryPhoneCategoryId, galleryPhoneCategoryMode, savedGallerySections],
+  )
+  const galleryShowsCategoryCards = galleryPhoneCategoryMode && !galleryPhoneSection && savedGallerySections.length > 0
+  const pageGallerySection = galleryPhoneCategoryMode ? galleryPhoneSection : activeGallerySection
+
   const refreshMe = useCallback(async (): Promise<AuthUser | null> => {
     const res = await fetch('/api/me', { credentials: 'include' })
     if (!res.ok) return null
@@ -859,7 +872,7 @@ function App() {
       document.scrollingElement?.scrollTo({ top: 0, left: 0 })
       homeScrollRef.current?.scrollTo({ top: 0, left: 0 })
     })
-  }, [selected, selectedCategoryId, showPlayCatalog, showQuizCatalog, showCreatePage, showSpreadPage, showGalleryPage, showSavedPage, showRecordPage])
+  }, [selected, selectedCategoryId, showPlayCatalog, showQuizCatalog, showCreatePage, showSpreadPage, showGalleryPage, showSavedPage, showRecordPage, galleryPhoneCategoryId])
 
   function chooseIllustration(id: string, opts?: { scrollSidebarToTop?: boolean; forceQuiz?: boolean; challenge?: boolean }) {
     const category = playCategories.find((it) => it.illustrationIds.includes(id))
@@ -2056,6 +2069,7 @@ function App() {
             type="button"
             onClick={() => {
               setGalleryGroupMode('category')
+              setGalleryPhoneCategoryId(null)
               setActiveGalleryCategoryId((current) => current ?? savedGallerySections[0]?.id ?? null)
             }}
           >
@@ -3305,7 +3319,7 @@ function App() {
               {authUser ? (
                 <>
                   {renderSavedGalleryControls('pageGalleryToolbar')}
-                  {galleryGroupMode === 'category' ? (
+                  {galleryGroupMode === 'category' && !isPhoneLayout ? (
                     <div className="galleryCategoryButtons pageGalleryCategories" role="list" aria-label="カテゴリーを選ぶ">
                       {savedGallerySections.map((section) => (
                         <button
@@ -3320,8 +3334,40 @@ function App() {
                       ))}
                     </div>
                   ) : null}
-                  <section className="publicGrid" aria-label="保存済み作品">
-                    {activeGallerySection?.items.length ? activeGallerySection.items.map((item) => (
+                  {galleryShowsCategoryCards ? (
+                    <section className="homeGrid categoryGrid" aria-label="マイギャラリーのカテゴリー一覧">
+                      {savedGallerySections.map((section) => (
+                        <button
+                          key={section.id}
+                          type="button"
+                          className="homeCard categoryCard"
+                          onClick={() => setGalleryPhoneCategoryId(section.id)}
+                        >
+                          <div className="categoryThumb" aria-hidden="true">
+                            {section.items.slice(0, 4).map((item) => (
+                              <div className="thumbPaper" key={item.id}>
+                                <img className="thumbImage" src={item.imageUrl} alt="" />
+                              </div>
+                            ))}
+                          </div>
+                          <div className="homeMeta">
+                            <strong>{section.title}</strong>
+                            <span>{section.items.length}枚</span>
+                          </div>
+                        </button>
+                      ))}
+                    </section>
+                  ) : (
+                  <>
+                  {galleryPhoneSection ? (
+                    <div className="introActions lineartCategoryActiveHead">
+                      <button className="btn categoryBackButton" type="button" onClick={() => setGalleryPhoneCategoryId(null)}>
+                        カテゴリー選択へ
+                      </button>
+                    </div>
+                  ) : null}
+                  <section className="publicGrid" aria-label={galleryPhoneSection ? `マイギャラリー - ${galleryPhoneSection.title}` : '保存済み作品'}>
+                    {pageGallerySection?.items.length ? pageGallerySection.items.map((item) => (
                       <figure className="publicCard" key={item.id}>
                         <button
                           className="publicImageButton"
@@ -3351,6 +3397,8 @@ function App() {
                       </p>
                     )}
                   </section>
+                  </>
+                  )}
                 </>
               ) : (
                 <div className="lockedPanel">

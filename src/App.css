@@ -672,56 +672,64 @@ input[type="checkbox"]:checked::after {
 .homePage .categoryCard,
 .playCatalogPage .categoryCard,
 .quizCatalogPage .categoryCard,
-.spreadToolPage .categoryCard {
+.spreadToolPage .categoryCard,
+.savedToolPage .categoryCard {
   background: var(--category-card-color, #29a2de);
 }
 
 .homePage .categoryCard:nth-child(7n + 1),
 .playCatalogPage .categoryCard:nth-child(7n + 1),
 .quizCatalogPage .categoryCard:nth-child(7n + 1),
-.spreadToolPage .categoryCard:nth-child(7n + 1) {
+.spreadToolPage .categoryCard:nth-child(7n + 1),
+.savedToolPage .categoryCard:nth-child(7n + 1) {
   --category-card-color: #feb61c;
 }
 
 .homePage .categoryCard:nth-child(7n + 2),
 .playCatalogPage .categoryCard:nth-child(7n + 2),
 .quizCatalogPage .categoryCard:nth-child(7n + 2),
-.spreadToolPage .categoryCard:nth-child(7n + 2) {
+.spreadToolPage .categoryCard:nth-child(7n + 2),
+.savedToolPage .categoryCard:nth-child(7n + 2) {
   --category-card-color: #29a2de;
 }
 
 .homePage .categoryCard:nth-child(7n + 3),
 .playCatalogPage .categoryCard:nth-child(7n + 3),
 .quizCatalogPage .categoryCard:nth-child(7n + 3),
-.spreadToolPage .categoryCard:nth-child(7n + 3) {
+.spreadToolPage .categoryCard:nth-child(7n + 3),
+.savedToolPage .categoryCard:nth-child(7n + 3) {
   --category-card-color: #ef6950;
 }
 
 .homePage .categoryCard:nth-child(7n + 4),
 .playCatalogPage .categoryCard:nth-child(7n + 4),
 .quizCatalogPage .categoryCard:nth-child(7n + 4),
-.spreadToolPage .categoryCard:nth-child(7n + 4) {
+.spreadToolPage .categoryCard:nth-child(7n + 4),
+.savedToolPage .categoryCard:nth-child(7n + 4) {
   --category-card-color: #29a2de;
 }
 
 .homePage .categoryCard:nth-child(7n + 5),
 .playCatalogPage .categoryCard:nth-child(7n + 5),
 .quizCatalogPage .categoryCard:nth-child(7n + 5),
-.spreadToolPage .categoryCard:nth-child(7n + 5) {
+.spreadToolPage .categoryCard:nth-child(7n + 5),
+.savedToolPage .categoryCard:nth-child(7n + 5) {
   --category-card-color: #ef6950;
 }
 
 .homePage .categoryCard:nth-child(7n + 6),
 .playCatalogPage .categoryCard:nth-child(7n + 6),
 .quizCatalogPage .categoryCard:nth-child(7n + 6),
-.spreadToolPage .categoryCard:nth-child(7n + 6) {
+.spreadToolPage .categoryCard:nth-child(7n + 6),
+.savedToolPage .categoryCard:nth-child(7n + 6) {
   --category-card-color: #feb61c;
 }
 
 .homePage .categoryCard:nth-child(7n),
 .playCatalogPage .categoryCard:nth-child(7n),
 .quizCatalogPage .categoryCard:nth-child(7n),
-.spreadToolPage .categoryCard:nth-child(7n) {
+.spreadToolPage .categoryCard:nth-child(7n),
+.savedToolPage .categoryCard:nth-child(7n) {
   --category-card-color: #ef6950;
 }
 
@@ -732,7 +740,9 @@ input[type="checkbox"]:checked::after {
 .quizCatalogPage .categoryCard .homeMeta strong,
 .quizCatalogPage .categoryCard .homeMeta span,
 .spreadToolPage .categoryCard .homeMeta strong,
-.spreadToolPage .categoryCard .homeMeta span {
+.savedToolPage .categoryCard .homeMeta strong,
+.spreadToolPage .categoryCard .homeMeta span,
+.savedToolPage .categoryCard .homeMeta span {
   color: #fff;
 }
 
