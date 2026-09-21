@@ -11,6 +11,7 @@ import { Stage } from './components/Stage'
 import { ILLUSTRATIONS, ILLUSTRATION_CATEGORIES, type IllustrationCategory, type IllustrationDef } from './illustrations/illustrations'
 import { FLAG_QUIZ_DATA } from './illustrations/flagQuizData'
 import { SIGNAL_FLAG_QUIZ_DATA } from './illustrations/signalFlagQuizData'
+import { FLAG_DIFFICULTY_DATA } from './illustrations/flagDifficultyData'
 import { RasterLineArt, type RasterPaintCommand } from './illustrations/svgs/RasterLineArt'
 
 type FillMap = Record<string, string>
@@ -162,7 +163,12 @@ type QuizChallenge = {
 }
 // 出題数のよく使う候補（ドラムロールの下にボタンで並べる。「全問」はカテゴリーの問題数）
 const CHALLENGE_PRESET_COUNTS = [5, 10, 20]
-// 難易度はまだ出題には使っていない（選択だけできる）
+// 難易度ごとの出題（データは scripts/generate-flag-difficulty-data.py が作る flagDifficultyData.ts。色の種類の数と、細かさのランク S/A）
+//   かんたん: 色が3色以下で、細かさのランクが S・A ではない旗
+//   ふつう: 細かさが S 以外のすべて
+//   むずかしい: 出題数の 10% を S（紋章など細かい旗）にして、残りは色の多い旗（5色以上）から。足りなければ4色→3色…の順に補う
+// データのないぬりえ（学習用など）は「ふつう」にだけ出す（かんたん・むずかしいは選べない）
+const CHALLENGE_HARD_FINE_RATIO = 0.1
 const CHALLENGE_DIFFICULTIES: { id: ChallengeDifficulty; label: string }[] = [
   { id: 'easy', label: 'かんたん' },
   { id: 'normal', label: 'ふつう' },
@@ -519,6 +525,14 @@ function App() {
     if (!selectedCategory) return []
     return selectedCategory.illustrationIds.filter((id) => quizConfigs[id] && illustrationById.get(id)?.referenceImage)
   }, [illustrationById, quizConfigs, selectedCategory])
+  // 難易度ごとの出題プール。プールが空の難易度（学習用のかんたん・むずかしいなど）は選べない
+  const challengePools = useMemo(() => buildChallengePools(challengePoolIds), [challengePoolIds])
+  const challengePoolSizes = useMemo<Record<ChallengeDifficulty, number>>(() => ({
+    easy: challengePools.easy.length,
+    normal: challengePools.normal.length,
+    hard: challengePools.hardFine.length + challengePools.hardRest.length,
+  }), [challengePools])
+  const challengeEffectiveDifficulty: ChallengeDifficulty = challengePoolSizes[challengeDifficulty] > 0 ? challengeDifficulty : 'normal'
   // チャレンジ中の問題を開いている間だけ有効（別のぬりえを開いたら自然に無効になる）
   const challenge = challengeState && (challengeState.phase === 'finished' || (quizMode && selected === challengeState.ids[challengeState.index])) ? challengeState : null
   const challengeRunning = challenge !== null && challenge.phase !== 'finished'
@@ -1195,15 +1209,17 @@ function App() {
 
   function startChallenge() {
     const pool = challengePoolIds
-    if (!pool.length || !selectedCategory) return
-    const count = Math.max(1, Math.min(challengeCount, pool.length))
-    const ids = pickChallengeIds(pool, count, savedIllustrationIds)
+    const difficulty = challengeEffectiveDifficulty
+    const poolSize = challengePoolSizes[difficulty]
+    if (!pool.length || !poolSize || !selectedCategory) return
+    const count = Math.max(1, Math.min(challengeCount, poolSize))
+    const ids = pickChallengeQuestions(pool, difficulty, count, savedIllustrationIds)
     challengeBusyRef.current = false
     challengeArmedRef.current = quizSelectionArmed
     setChallengeQuitOpen(false)
     setChallengeResetOpen(false)
     setChallengeSetupOpen(false)
-    setChallengeState({ categoryId: selectedCategory.id, difficulty: challengeDifficulty, poolIds: pool, ids, index: 0, results: [], lastScore: 0, phase: 'answering' })
+    setChallengeState({ categoryId: selectedCategory.id, difficulty, poolIds: pool, ids, index: 0, results: [], lastScore: 0, phase: 'answering' })
     chooseIllustration(ids[0], { forceQuiz: true, challenge: true, scrollSidebarToTop: false })
   }
 
@@ -1221,7 +1237,7 @@ function App() {
 
   function restartChallenge() {
     if (!challenge) return
-    const ids = pickChallengeIds(challenge.poolIds, challenge.ids.length, savedIllustrationIds)
+    const ids = pickChallengeQuestions(challenge.poolIds, challenge.difficulty, challenge.ids.length, savedIllustrationIds)
     challengeBusyRef.current = false
     setChallengeResetOpen(false)
     setChallengeState({ ...challenge, ids, index: 0, results: [], lastScore: 0, phase: 'answering' })
@@ -1990,7 +2006,9 @@ function App() {
 
   function renderChallengeSetupModal() {
     if (!challengeSetupOpen || !selectedCategory) return null
-    const poolSize = challengePoolIds.length
+    if (!challengePoolIds.length) return null
+    const difficulty = challengeEffectiveDifficulty
+    const poolSize = challengePoolSizes[difficulty]
     if (!poolSize) return null
     const count = Math.max(1, Math.min(challengeCount, poolSize))
     const changeCount = (value: number) => setChallengeCount(Math.max(1, Math.min(poolSize, Math.round(value))))
@@ -2039,7 +2057,8 @@ function App() {
                     <input
                       type="radio"
                       name="challenge-difficulty"
-                      checked={challengeDifficulty === option.id}
+                      checked={difficulty === option.id}
+                      disabled={challengePoolSizes[option.id] === 0}
                       onChange={() => setChallengeDifficulty(option.id)}
                     />
                     <span>{option.label}</span>
@@ -4707,6 +4726,58 @@ function pickChallengeIds(pool: string[], count: number, savedIds: Set<string>):
   const saved = shuffleArray(pool.filter((id) => savedIds.has(id)))
   const others = shuffleArray(pool.filter((id) => !savedIds.has(id)))
   return shuffleArray([...saved, ...others].slice(0, count))
+}
+
+type ChallengePools = { easy: string[]; normal: string[]; hardFine: string[]; hardRest: string[] }
+
+function difficultyInfoOf(id: string) {
+  return FLAG_DIFFICULTY_DATA[id] as (typeof FLAG_DIFFICULTY_DATA)[string] | undefined
+}
+
+// カテゴリーの問題を、難易度ごとの出題プールに分ける（判定のルールは CHALLENGE_HARD_FINE_RATIO のコメント参照）。
+// hardFine＝むずかしいで一定の割合だけ混ぜる細かい旗（S）、hardRest＝それ以外でデータのある旗
+function buildChallengePools(poolIds: string[]): ChallengePools {
+  return {
+    easy: poolIds.filter((id) => {
+      const info = difficultyInfoOf(id)
+      return Boolean(info) && info!.colors <= 3 && info!.fine === null
+    }),
+    normal: poolIds.filter((id) => difficultyInfoOf(id)?.fine !== 'S'),
+    hardFine: poolIds.filter((id) => difficultyInfoOf(id)?.fine === 'S'),
+    hardRest: poolIds.filter((id) => {
+      const info = difficultyInfoOf(id)
+      return Boolean(info) && info!.fine !== 'S'
+    }),
+  }
+}
+
+// 難易度を反映して出題を選ぶ。まず難易度で絞り、そのなかでマイギャラリーに保存しているぬりえを優先する（pickChallengeIds）。
+function pickChallengeQuestions(poolIds: string[], difficulty: ChallengeDifficulty, count: number, savedIds: Set<string>): string[] {
+  const pools = buildChallengePools(poolIds)
+  if (difficulty === 'easy') return pickChallengeIds(pools.easy, count, savedIds)
+  if (difficulty === 'normal') return pickChallengeIds(pools.normal, count, savedIds)
+  const total = pools.hardFine.length + pools.hardRest.length
+  const n = Math.min(count, total)
+  let fineCount = Math.min(pools.hardFine.length, Math.round(n * CHALLENGE_HARD_FINE_RATIO))
+  let restCount = n - fineCount
+  if (restCount > pools.hardRest.length) {
+    // 細かくない旗が足りないときは、細かい旗で補う
+    fineCount += restCount - pools.hardRest.length
+    restCount = pools.hardRest.length
+  }
+  const fine = pickChallengeIds(pools.hardFine, fineCount, savedIds)
+  // 細かくない旗は、色の多い旗（5色以上）から順に、足りるまで色の少ない段へ補っていく
+  const byColors = new Map<number, string[]>()
+  for (const id of pools.hardRest) {
+    const key = Math.min(difficultyInfoOf(id)?.colors ?? 0, 5)
+    byColors.set(key, [...(byColors.get(key) ?? []), id])
+  }
+  const rest: string[] = []
+  for (const key of [...byColors.keys()].sort((a, b) => b - a)) {
+    if (rest.length >= restCount) break
+    rest.push(...pickChallengeIds(byColors.get(key) ?? [], restCount - rest.length, savedIds))
+  }
+  return shuffleArray([...fine, ...rest])
 }
 
 function shuffleArray<T>(items: T[]): T[] {

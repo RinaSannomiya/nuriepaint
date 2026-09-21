@@ -6550,6 +6550,12 @@ input[type="checkbox"]:checked::after {
   accent-color: var(--accent);
 }
 
+/* 選べない難易度（その種類の問題がないカテゴリー） */
+.challengeDifficultyOption:has(input:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .btn.primaryAction.challengeStartButton {
   min-height: 50px;
   font-size: 16px;
