@@ -9,7 +9,18 @@ import { ChallengeSidebar } from './components/ChallengeSidebar'
 import { DrumRoll } from './components/DrumRoll'
 import { isWhiteColor } from './lib/color'
 import { Stage } from './components/Stage'
-import { ILLUSTRATIONS, ILLUSTRATION_CATEGORIES, type IllustrationCategory, type IllustrationDef } from './illustrations/illustrations'
+import {
+  CATEGORY_GROUPS,
+  ILLUSTRATIONS,
+  ILLUSTRATION_CATEGORIES,
+  SECRET_FIRST_CATEGORY,
+  SECRET_PATH,
+  SECRET_TITLE_OVERRIDES,
+  categoryDisplayTitle,
+  findCategoryGroup,
+  type IllustrationCategory,
+  type IllustrationDef,
+} from './illustrations/illustrations'
 import { FLAG_QUIZ_DATA } from './illustrations/flagQuizData'
 import { SIGNAL_FLAG_QUIZ_DATA } from './illustrations/signalFlagQuizData'
 import { FLAG_DIFFICULTY_DATA } from './illustrations/flagDifficultyData'
@@ -276,10 +287,12 @@ function App() {
   const authIconEditorRef = useRef<HTMLDivElement | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [gallerySidebarScrollToken, setGallerySidebarScrollToken] = useState(0)
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+  // かくしページ（/ringo-mikan-lemon）で開いたときだけ、はじめの8枚のカテゴリーを最初から開く
+  const [secretMode] = useState(readSecretMode)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(() => (readSecretMode() ? SECRET_FIRST_CATEGORY.id : null))
   const [showPlayCatalog, setShowPlayCatalog] = useState(false)
   const [showQuizCatalog, setShowQuizCatalog] = useState(false)
-  const [categoryReturnPage, setCategoryReturnPage] = useState<'play' | 'learn' | 'home'>('home')
+  const [categoryReturnPage, setCategoryReturnPage] = useState<'play' | 'learn' | 'home'>(() => (readSecretMode() ? 'play' : 'home'))
   const [showCreatePage, setShowCreatePage] = useState(false)
   const [showSpreadPage, setShowSpreadPage] = useState(false)
   const [showGalleryPage, setShowGalleryPage] = useState(false)
@@ -463,7 +476,13 @@ function App() {
     }))
   }, [libraryLinearts])
 
-  const allIllustrations = useMemo(() => [...ILLUSTRATIONS, ...libraryIllustrations], [libraryIllustrations])
+  const allIllustrations = useMemo(() => {
+    // かくしページの中だけ、むかしの名前（ガリガリくんのアイス）で表示する
+    const builtIn = secretMode
+      ? ILLUSTRATIONS.map((it) => (SECRET_TITLE_OVERRIDES[it.id] ? { ...it, title: SECRET_TITLE_OVERRIDES[it.id] } : it))
+      : ILLUSTRATIONS
+    return [...builtIn, ...libraryIllustrations]
+  }, [libraryIllustrations, secretMode])
   const libraryByIllustrationId = useMemo(() => {
     return new Map(libraryLinearts.map((lineart) => [`library-${lineart.id}`, lineart]))
   }, [libraryLinearts])
@@ -504,9 +523,10 @@ function App() {
 
   const selectedCategory = useMemo(() => {
     if (!selectedCategoryId) return null
+    if (secretMode && selectedCategoryId === SECRET_FIRST_CATEGORY.id) return SECRET_FIRST_CATEGORY
     const categories = categoryReturnPage === 'learn' ? learnCategories : playCategories
     return categories.find((category) => category.id === selectedCategoryId) ?? null
-  }, [categoryReturnPage, learnCategories, playCategories, selectedCategoryId])
+  }, [categoryReturnPage, learnCategories, playCategories, secretMode, selectedCategoryId])
 
   const categoryIllustrations = useMemo(() => {
     if (!selectedCategory) return []
@@ -523,6 +543,26 @@ function App() {
   }, [categoryIllustrations, quizConfigs, quizSelectionArmed])
 
   const quizCategories = useMemo(() => learnCategories, [learnCategories])
+  // あそぶ／まなぶ／ホームのカテゴリー一覧。大カテゴリーごとに見出しを入れ、イラストが0枚の「枠」は出さない
+  const catalogItems = useMemo(() => {
+    const source = showQuizCatalog
+      ? quizCategories
+      : showPlayCatalog
+        ? (secretMode ? [SECRET_FIRST_CATEGORY, ...playCategories] : playCategories)
+        : ILLUSTRATION_CATEGORIES
+    const items: CatalogItem[] = []
+    let lastGroupId: string | null = null
+    let index = 0
+    for (const category of source) {
+      if (category.illustrationIds.length === 0) continue
+      const group = findCategoryGroup(category.id)
+      if (group && group.id !== lastGroupId) items.push({ type: 'group', id: group.id, title: group.title })
+      lastGroupId = group?.id ?? null
+      items.push({ type: 'category', category, index })
+      index += 1
+    }
+    return items
+  }, [playCategories, quizCategories, secretMode, showPlayCatalog, showQuizCatalog])
   const lpPreviewIllustrations = useMemo(() => {
     return ['apple', 'snack-05', 'flag-001']
       .map((id) => ILLUSTRATIONS.find((it) => it.id === id))
@@ -597,7 +637,7 @@ function App() {
     return ILLUSTRATION_CATEGORIES
       .map((category) => ({
         id: category.id,
-        title: category.title,
+        title: categoryDisplayTitle(category),
         items: uploadedLinearts.filter((item) => item.categoryId === category.id),
       }))
       .filter((section) => section.items.length > 0)
@@ -607,7 +647,7 @@ function App() {
     return ILLUSTRATION_CATEGORIES
       .map((category) => ({
         id: category.id,
-        title: category.title,
+        title: categoryDisplayTitle(category),
         items: publicLinearts.filter((item) => item.categoryId === category.id),
       }))
       .filter((section) => section.items.length > 0)
@@ -647,7 +687,7 @@ function App() {
       const items = filteredColorings
         .filter((item) => category.illustrationIds.includes(item.illustrationId))
         .sort(itemSorter)
-      return { id: category.id, title: category.title, items }
+      return { id: category.id, title: categoryDisplayTitle(category), items }
     })
       .filter((section) => section.items.length > 0)
       .sort((left, right) => (categoryOrderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (categoryOrderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER))
@@ -831,7 +871,9 @@ function App() {
   }, [selected, selectedCategoryId, showPlayCatalog, showQuizCatalog, showCreatePage, showSpreadPage, showGalleryPage, showSavedPage, showRecordPage])
 
   function chooseIllustration(id: string, opts?: { scrollSidebarToTop?: boolean; forceQuiz?: boolean; challenge?: boolean }) {
-    const category = playCategories.find((it) => it.illustrationIds.includes(id))
+    // かくしページから選んだときは、左カラムの一覧もはじめの8枚の並びのままにする
+    const inSecretCategory = secretMode && selectedCategoryId === SECRET_FIRST_CATEGORY.id && SECRET_FIRST_CATEGORY.illustrationIds.includes(id)
+    const category = inSecretCategory ? SECRET_FIRST_CATEGORY : playCategories.find((it) => it.illustrationIds.includes(id))
     if (category) {
       if (category.id !== selectedCategoryId && !opts?.challenge) {
         setCategoryReturnPage(showQuizCatalog ? 'learn' : 'play')
@@ -2107,7 +2149,7 @@ function App() {
           <div className="modalHead">
             <div>
               <div className="modalTitle">ぬりえテスト</div>
-              <div className="modalSub">「{selectedCategory.title}」からランダムに出題！何問つづけて正解できるかな？</div>
+              <div className="modalSub">「{categoryDisplayTitle(selectedCategory)}」からランダムに出題！何問つづけて正解できるかな？</div>
             </div>
             <button className="btn iconButton quizResultCloseButton" type="button" onClick={() => setChallengeSetupOpen(false)} aria-label="閉じる" title="閉じる">
               <span aria-hidden="true" />
@@ -3050,9 +3092,7 @@ function App() {
                       <label>
                         <span>カテゴリー</span>
                         <select value={lineartCategoryId} onChange={(ev) => setLineartCategoryId(ev.target.value)} required>
-                          {ILLUSTRATION_CATEGORIES.map((category) => (
-                            <option value={category.id} key={category.id}>{category.title}</option>
-                          ))}
+                          <CategoryOptions />
                         </select>
                       </label>
                     </div>
@@ -3134,9 +3174,7 @@ function App() {
                                   {item.isLearning ? <span>学習用ぬりえ</span> : null}
                                   <label className="lineartCategoryChanger">
                                     <select aria-label="カテゴリー" value={item.categoryId} onChange={(ev) => updateUploadedLineartCategory(item, ev.target.value)}>
-                                      {ILLUSTRATION_CATEGORIES.map((category) => (
-                                        <option value={category.id} key={category.id}>{category.title}</option>
-                                      ))}
+                                      <CategoryOptions />
                                     </select>
                                   </label>
                                   <div className="cardActionRow">
@@ -3217,9 +3255,7 @@ function App() {
                                 <label>
                                   <span>カテゴリー</span>
                                   <select value={getLineartAddCategoryId(item.id)} onChange={(ev) => updateLineartAddCategory(item.id, ev.target.value)} disabled={Boolean(item.added)}>
-                                    {ILLUSTRATION_CATEGORIES.map((category) => (
-                                      <option value={category.id} key={category.id}>{category.title}</option>
-                                    ))}
+                                    <CategoryOptions />
                                   </select>
                                 </label>
                                 <button className={`downloadLink ${item.added ? 'addedLineartButton' : ''}`} type="button" disabled={Boolean(item.added)} onClick={() => addLineartToPlay(item)}>
@@ -3509,7 +3545,7 @@ function App() {
             <div className={`homeIntro ${(showQuizCatalog && !selectedCategory) || selectedCategoryHasQuiz ? 'learningIntro' : ''}`}>
             <div>
               <h1 id="home-title">
-                {selectedCategory ? selectedCategory.title : showQuizCatalog ? 'まなぶ' : showPlayCatalog ? 'あそぶ' : 'カテゴリーを選ぶ'}
+                {selectedCategory ? categoryDisplayTitle(selectedCategory) : showQuizCatalog ? 'まなぶ' : showPlayCatalog ? 'あそぶ' : 'カテゴリーを選ぶ'}
               </h1>
               {!selectedCategory ? (
                 <p>
@@ -3590,7 +3626,11 @@ function App() {
             </section>
           ) : (
             <section className="homeGrid categoryGrid" aria-label="カテゴリー一覧">
-              {(showQuizCatalog ? quizCategories : showPlayCatalog ? playCategories : ILLUSTRATION_CATEGORIES).map((category, idx) => {
+              {catalogItems.map((item) => {
+                if (item.type === 'group') {
+                  return <h2 className="categoryGroupHeading" key={`group-${item.id}`}>{item.title}</h2>
+                }
+                const { category, index: idx } = item
                 const previews = category.illustrationIds
                   .slice(0, 4)
                   .map((id) => allIllustrations.find((it) => it.id === id))
@@ -4800,6 +4840,13 @@ type AuthMode =
   | 'resetError'
   | 'profile'
 
+// かくしページ（https://nuriepaint.com/ringo-mikan-lemon）を開いているか。
+// wrangler.jsonc の not_found_handling が single-page-application なので、この道筋でも index.html が返ってくる。
+function readSecretMode(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.location.pathname.replace(/\/+$/, '') === SECRET_PATH
+}
+
 // 認証メールのリンクを開いたあとに戻ってくる URL（?verify=done / ?verify=emailchanged、失敗時は &error=...）を読む。
 // サーバー側（src/auth.ts）が付ける callbackURL と対応している。
 function readVerifyRedirect(): { mode: AuthMode; error: string | null; token: string | null } | null {
@@ -5062,7 +5109,7 @@ function buildRecordCategories(
         .map((it) => ({ id: it.id, title: it.title, saved: savedIds.has(it.id), learned: learnedIds.has(it.id), learnedAt: learnedAtById.get(it.id) ?? null }))
       return {
         id: category.id,
-        title: category.title,
+        title: categoryDisplayTitle(category),
         rows,
         savedCount: rows.filter((row) => row.saved).length,
         learnedCount: rows.filter((row) => row.learned).length,
@@ -5098,6 +5145,28 @@ function buildLearnCategories(categories: IllustrationCategory[], linearts: Libr
 
 function getProfileMotifImage(motifId: string) {
   return PROFILE_MOTIFS.find((motif) => motif.id === motifId)?.imageUrl ?? `/profile-motifs/${motifId}.png`
+}
+
+type CatalogItem =
+  | { type: 'group'; id: string; title: string }
+  | { type: 'category'; category: IllustrationCategory; index: number }
+
+// ぬりえを追加するときのカテゴリー選択肢。大カテゴリーごとに <optgroup> でまとめる（空の「枠」にも追加できる）
+function CategoryOptions() {
+  return (
+    <>
+      {CATEGORY_GROUPS.map((group) => (
+        <optgroup label={group.title} key={group.id}>
+          {group.categoryIds
+            .map((id) => ILLUSTRATION_CATEGORIES.find((category) => category.id === id))
+            .filter((category): category is IllustrationCategory => Boolean(category))
+            .map((category) => (
+              <option value={category.id} key={category.id}>{category.title}</option>
+            ))}
+        </optgroup>
+      ))}
+    </>
+  )
 }
 
 // パスワード入力欄。右端の目のアイコンで、入力中のパスワードを表示／非表示にできる。

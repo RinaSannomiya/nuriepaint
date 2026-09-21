@@ -13,7 +13,7 @@ export function IceBar(props: {
 }) {
   return (
     <RasterLineArt
-      title="ガリガリくんのアイス"
+      title="アイスバー"
       crop={{ x: 151, y: 733, width: 215, height: 367 }}
       color={props.color}
       command={props.command}

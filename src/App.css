@@ -832,6 +832,23 @@ input[type="checkbox"]:checked::after {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
+/* 大カテゴリーの見出し（いきもの・たべもの…）。グリッドの1行ぶんを使う */
+.categoryGrid .categoryGroupHeading {
+  grid-column: 1 / -1;
+  margin: 18px 0 -20px;
+  padding-left: 14px;
+  border-left: 8px solid var(--accent-yellow-dark);
+  color: var(--ink);
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.categoryGrid .categoryGroupHeading:first-child {
+  margin-top: 0;
+}
+
 .categoryThumb {
   height: 260px;
   display: grid;
@@ -5852,6 +5869,11 @@ input[type="checkbox"]:checked::after {
 
   .categoryGrid {
     grid-template-columns: 1fr;
+  }
+
+  .categoryGrid .categoryGroupHeading {
+    margin: 10px 0 -14px;
+    border-left-width: 6px;
   }
 
   .categoryThumb {

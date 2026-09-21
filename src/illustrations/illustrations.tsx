@@ -38,8 +38,17 @@ export type IllustrationDef = {
 export type IllustrationCategory = {
   id: string
   title: string
+  /** 単独で出すと意味がわかりにくい名前（アジア、そのほか など）のときだけ、一覧用の名前を入れる */
+  fullTitle?: string
   subtitle: string
   illustrationIds: IllustrationId[]
+}
+
+/** 大カテゴリー。小カテゴリー（IllustrationCategory）を id でまとめる */
+export type CategoryGroup = {
+  id: string
+  title: string
+  categoryIds: string[]
 }
 
 const FOOD_ILLUSTRATIONS: IllustrationDef[] = [
@@ -73,7 +82,7 @@ const FOOD_ILLUSTRATIONS: IllustrationDef[] = [
   },
   {
     id: 'iceBar',
-    title: 'ガリガリくんのアイス',
+    title: 'アイスバー',
     subtitle: 'Ice bar',
     raster: true,
     node: (props) => <IceBar {...props} />,
@@ -199,11 +208,11 @@ const ANIMAL_DATA = [
   { page: '05', title: 'ライオン', subtitle: 'Lion' },
   { page: '06', title: 'キリン', subtitle: 'Giraffe' },
   { page: '07', title: 'パンダ', subtitle: 'Panda' },
-  { page: '08', title: 'ペンギン', subtitle: 'Penguin' },
-  { page: '09', title: 'カメ', subtitle: 'Turtle' },
+  { page: '08', title: 'にっこりペンギン', subtitle: 'Smiling penguin' },
+  { page: '09', title: 'おおきなこうらのウミガメ', subtitle: 'Sea turtle (large shell)' },
   { page: '10', title: 'イルカ', subtitle: 'Dolphin' },
-  { page: '11', title: 'ちょう', subtitle: 'Butterfly' },
-  { page: '12', title: 'カエル', subtitle: 'Frog' },
+  { page: '11', title: 'もようがおおきいちょう', subtitle: 'Butterfly (bold pattern)' },
+  { page: '12', title: 'はすのはっぱのカエル', subtitle: 'Frog on a lily pad' },
   { page: '13', title: 'うま', subtitle: 'Horse' },
   { page: '14', title: 'うし', subtitle: 'Cow' },
   { page: '15', title: 'ひつじ', subtitle: 'Sheep' },
@@ -382,7 +391,7 @@ const FOOD_CATEGORY_ILLUSTRATIONS: IllustrationDef[] = FOOD_DATA.map((item) => (
 }))
 
 const INSECT_DATA = [
-  { page: '01', title: 'ちょう', subtitle: 'Butterfly' },
+  { page: '01', title: 'もようがこまかいちょう', subtitle: 'Butterfly (fine pattern)' },
   { page: '02', title: 'てんとうむし', subtitle: 'Ladybug' },
   { page: '03', title: 'トンボ', subtitle: 'Dragonfly' },
   { page: '04', title: 'カブトムシ', subtitle: 'Rhinoceros beetle' },
@@ -428,8 +437,8 @@ const TOOL_ILLUSTRATIONS: IllustrationDef[] = TOOL_DATA.map((item) => ({
 }))
 
 const LIVING_THING_DATA = [
-  { page: '02', title: 'ウミガメ', subtitle: 'Sea turtle' },
-  { page: '03', title: 'カエル', subtitle: 'Frog' },
+  { page: '02', title: 'こまかいうろこのウミガメ', subtitle: 'Sea turtle (fine scales)' },
+  { page: '03', title: 'もようのあるカエル', subtitle: 'Patterned frog' },
   { page: '04', title: 'カメレオン', subtitle: 'Chameleon' },
 ]
 
@@ -452,7 +461,7 @@ const BIRD_DATA = [
   { id: 'bird-owl', title: 'フクロウ', subtitle: 'Owl', source: '/lineart/living-things/living-01.png' },
   { id: 'bird-parrot', title: 'オウム', subtitle: 'Parrot', source: '/lineart/living-things/living-05.png' },
   { id: 'bird-01', title: 'クジャク', subtitle: 'Peacock', source: '/lineart/birds/bird-01.png' },
-  { id: 'bird-02', title: 'ペンギン', subtitle: 'Penguin', source: '/lineart/birds/bird-02.png' },
+  { id: 'bird-02', title: 'よこむきペンギン', subtitle: 'Penguin (side view)', source: '/lineart/birds/bird-02.png' },
   { id: 'bird-03', title: 'フラミンゴ', subtitle: 'Flamingo', source: '/lineart/birds/bird-03.png' },
   { id: 'bird-04', title: 'ワシ', subtitle: 'Eagle', source: '/lineart/birds/bird-04.png' },
   { id: 'bird-05', title: 'ハクチョウ', subtitle: 'Swan', source: '/lineart/birds/bird-05.png' },
@@ -546,47 +555,206 @@ export const ILLUSTRATIONS: IllustrationDef[] = [
   ...PATTERN_ILLUSTRATIONS,
 ]
 
+// ── かくしページ ─────────────────────────────────────────────
+// 「りんご・みかん・レモン・ほうれんそう・ガリガリくんのアイス・ブルーベリー・ぶどう・もも」の、はじめの8枚の並び。
+// 一覧（ILLUSTRATION_CATEGORIES）には入れていないので、ふつうは表に出ない。
+// https://nuriepaint.com/ringo-mikan-lemon を開いたときだけ、あそぶの一覧の先頭に出る（App.tsx の readSecretMode）。
+// イラストのIDは ILLUSTRATIONS のものをそのまま使う（マイギャラリーの保存作品やクイズ成績は、ふつうのカテゴリー側と同じものを指す）。
+export const SECRET_PATH = '/ringo-mikan-lemon'
+export const SECRET_FIRST_CATEGORY: IllustrationCategory = {
+  id: 'secret-first-eight',
+  title: 'はじまりのフルーツ・やさい',
+  subtitle: 'はじめの8まい',
+  illustrationIds: ['apple', 'orange', 'lemon', 'spinach', 'iceBar', 'blueberry', 'grape', 'peach'],
+}
+// かくしページの中だけ、むかしの名前で表示するイラスト
+export const SECRET_TITLE_OVERRIDES: Record<string, string> = {
+  iceBar: 'ガリガリくんのアイス',
+}
+
+// ── カテゴリー（枠）─────────────────────────────────────────
+// 大カテゴリー（CATEGORY_GROUPS）の下に小カテゴリー（ILLUSTRATION_CATEGORIES）が並ぶ、2階層。
+// ・1つのイラストは、かならず1つの小カテゴリーにだけ入れる（マイギャラリーで二重に出ないように）。
+// ・小カテゴリーのIDは DB（uploaded_linearts など）に保存されるので、いちど決めたら変えない。
+//   新しいIDは src/illustrations/categoryIds.ts にも足す（scripts/check-categories.py で確認できる）。
+// ・イラストが0枚の小カテゴリーは「これから増やす枠」。画面には出さない（App.tsx 側で空のカテゴリーを隠す）。
+// ・名前に「・」は使わない。
+// ・fullTitle は、他の場所に1枚だけ出したときに意味がわかりにくい名前（アジア、そのほか など）用。
+const pick = (...ids: IllustrationId[]): IllustrationId[] => ids
+const range = (prefix: string, from: number, to: number): IllustrationId[] =>
+  Array.from({ length: to - from + 1 }, (_, i) => `${prefix}${String(from + i).padStart(2, '0')}`)
+const without = (ids: IllustrationId[], ...excluded: IllustrationId[]): IllustrationId[] =>
+  ids.filter((id) => !excluded.includes(id))
+
 export const ILLUSTRATION_CATEGORIES: IllustrationCategory[] = [
-  {
-    id: 'ringo-mikan-lemon',
-    title: 'フルーツ・やさい',
-    subtitle: '',
-    illustrationIds: ['apple', 'orange', 'lemon', 'spinach', 'iceBar', 'blueberry', 'grape', 'peach'],
-  },
+  // いきもの
   {
     id: 'animals',
     title: 'どうぶつ',
     subtitle: '',
-    illustrationIds: ANIMAL_ILLUSTRATIONS.map((it) => it.id),
+    illustrationIds: without(
+      ANIMAL_ILLUSTRATIONS.map((it) => it.id),
+      'animal-08',
+      'animal-09',
+      'animal-10',
+      'animal-11',
+      'animal-12',
+    ),
+  },
+  {
+    id: 'birds',
+    title: 'とり',
+    subtitle: '',
+    illustrationIds: [...BIRD_ILLUSTRATIONS.map((it) => it.id), 'animal-08'],
+  },
+  {
+    id: 'fish',
+    title: 'うみのいきもの',
+    subtitle: '',
+    illustrationIds: [...FISH_ILLUSTRATIONS.map((it) => it.id), 'animal-10', 'animal-09', 'living-02'],
+  },
+  {
+    id: 'insects',
+    title: 'むし',
+    subtitle: '',
+    illustrationIds: [...INSECT_ILLUSTRATIONS.map((it) => it.id), 'animal-11'],
+  },
+  {
+    id: 'living-things',
+    title: 'はちゅうるい',
+    subtitle: '',
+    illustrationIds: pick('living-04'),
+  },
+  { id: 'amphibians', title: 'りょうせいるい', subtitle: '', illustrationIds: pick('animal-12', 'living-03') },
+  { id: 'dinosaurs', title: 'きょうりゅう', subtitle: '', illustrationIds: DINOSAUR_ILLUSTRATIONS.map((it) => it.id) },
+
+  // しぜん
+  { id: 'plants', title: 'しょくぶつ', subtitle: '', illustrationIds: PLANT_ILLUSTRATIONS.map((it) => it.id) },
+  { id: 'weather', title: 'てんき', subtitle: '', illustrationIds: [] },
+  { id: 'space', title: 'うちゅう', subtitle: '', illustrationIds: [] },
+
+  // たべもの
+  {
+    id: 'ringo-mikan-lemon',
+    title: 'フルーツ',
+    subtitle: '',
+    illustrationIds: pick('apple', 'orange', 'lemon', 'blueberry', 'grape', 'peach'),
+  },
+  { id: 'vegetables', title: 'やさい', subtitle: '', illustrationIds: pick('spinach') },
+  {
+    id: 'sweets',
+    title: 'スイーツ',
+    subtitle: '',
+    // アイスバーはソフトクリーム（snack-03）のとなりに並べる
+    illustrationIds: pick('snack-02', 'snack-03', 'iceBar', 'snack-05', 'snack-06', 'snack-09', 'snack-10', 'snack-11', ...range('snack-', 21, 30)),
   },
   {
     id: 'snacks',
-    title: 'おやつ・デザート',
+    title: 'おやつ',
     subtitle: '',
-    illustrationIds: SNACK_ILLUSTRATIONS.map((it) => it.id),
+    illustrationIds: pick('snack-01', 'snack-04', 'snack-07', 'snack-08', ...range('snack-', 12, 16), 'snack-18', 'snack-19'),
   },
-  {
-    id: 'flags',
-    title: '国旗',
-    subtitle: '',
-    illustrationIds: FLAG_ILLUSTRATIONS.map((it) => it.id),
-  },
-  {
-    id: 'signal-flags',
-    title: '国際信号旗',
-    subtitle: '',
-    illustrationIds: SIGNAL_FLAG_ILLUSTRATIONS.map((it) => it.id),
-  },
-  { id: 'clothes', title: 'ようふく', subtitle: '', illustrationIds: CLOTHES_ILLUSTRATIONS.map((it) => it.id) },
+  { id: 'food', title: 'ごはん', subtitle: '', illustrationIds: FOOD_CATEGORY_ILLUSTRATIONS.map((it) => it.id) },
+
+  // のりもの
+  { id: 'vehicles', title: 'くるま', subtitle: '', illustrationIds: pick('vehicle-01', 'vehicle-02') },
+  { id: 'trains', title: 'でんしゃ', subtitle: '', illustrationIds: pick('vehicle-03') },
+  { id: 'airplanes', title: 'ひこうき', subtitle: '', illustrationIds: pick('vehicle-04') },
+  { id: 'ships', title: 'ふね', subtitle: '', illustrationIds: pick('vehicle-05') },
+
+  // くらし
   { id: 'home-things', title: 'おうち', subtitle: '', illustrationIds: HOME_THINGS_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'plants', title: 'しょくぶつ', subtitle: '', illustrationIds: PLANT_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'insects', title: 'むし', subtitle: '', illustrationIds: INSECT_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'dinosaurs', title: 'きょうりゅう', subtitle: '', illustrationIds: DINOSAUR_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'living-things', title: 'いきもの', subtitle: '', illustrationIds: LIVING_THING_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'birds', title: 'とり', subtitle: '', illustrationIds: BIRD_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'fish', title: 'さかな', subtitle: '', illustrationIds: FISH_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'patterns', title: 'もよう', subtitle: '', illustrationIds: PATTERN_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'vehicles', title: 'のりもの', subtitle: '', illustrationIds: VEHICLE_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'food', title: 'たべもの', subtitle: '', illustrationIds: FOOD_CATEGORY_ILLUSTRATIONS.map((it) => it.id) },
+  { id: 'rooms', title: 'へや', subtitle: '', illustrationIds: [] },
   { id: 'tools', title: 'どうぐ', subtitle: '', illustrationIds: TOOL_ILLUSTRATIONS.map((it) => it.id) },
+  { id: 'toys', title: 'おもちゃ', subtitle: '', illustrationIds: [] },
+
+  // おしゃれ
+  {
+    id: 'clothes',
+    title: 'ドレス',
+    subtitle: '',
+    illustrationIds: without(
+      CLOTHES_ILLUSTRATIONS.map((it) => it.id),
+      'clothes-11',
+      'clothes-13',
+    ),
+  },
+  { id: 'casual-wear', title: 'いつものふく', subtitle: '', illustrationIds: [] },
+  { id: 'world-costumes', title: 'せかいのいしょう', subtitle: '', illustrationIds: pick('clothes-11', 'clothes-13') },
+  { id: 'accessories', title: 'こもの', subtitle: '', illustrationIds: [] },
+
+  // もよう（地域は日本以外でリリースするときの翻訳を考えて、地域名でわけている）
+  { id: 'patterns-asia', title: 'アジア', fullTitle: 'アジアのもよう', subtitle: '', illustrationIds: pick('pattern-06', 'pattern-07', 'pattern-08', 'pattern-04') },
+  { id: 'patterns-europe', title: 'ヨーロッパ', fullTitle: 'ヨーロッパのもよう', subtitle: '', illustrationIds: pick('pattern-01', 'pattern-02') },
+  { id: 'patterns-africa', title: 'アフリカ', fullTitle: 'アフリカのもよう', subtitle: '', illustrationIds: [] },
+  { id: 'patterns-america', title: 'アメリカ', fullTitle: 'アメリカのもよう', subtitle: '', illustrationIds: pick('pattern-05') },
+  { id: 'patterns-oceania', title: 'オセアニア', fullTitle: 'オセアニアのもよう', subtitle: '', illustrationIds: [] },
+  { id: 'patterns', title: 'そのほか', fullTitle: 'そのほかのもよう', subtitle: '', illustrationIds: pick('pattern-03') },
+
+  // シンボル（国旗の地域・国際信号旗のしゅるいは、あとで「タグ」でしぼりこむ）
+  { id: 'flags', title: '国旗', subtitle: '', illustrationIds: FLAG_ILLUSTRATIONS.map((it) => it.id) },
+  { id: 'signal-flags', title: '国際信号旗', subtitle: '', illustrationIds: SIGNAL_FLAG_ILLUSTRATIONS.map((it) => it.id) },
+  { id: 'road-signs', title: 'どうろひょうしき', subtitle: '', illustrationIds: [] },
+  { id: 'safety-marks', title: 'あんぜんマーク', subtitle: '', illustrationIds: [] },
+
+  // きせつ（ぎょうじもここ）
+  { id: 'spring', title: 'はる', subtitle: '', illustrationIds: [] },
+  { id: 'summer', title: 'なつ', subtitle: '', illustrationIds: [] },
+  { id: 'autumn', title: 'あき', subtitle: '', illustrationIds: [] },
+  { id: 'winter', title: 'ふゆ', subtitle: '', illustrationIds: [] },
+
+  // ファンタジー
+  { id: 'fairies', title: 'ようせい', subtitle: '', illustrationIds: [] },
+  { id: 'princesses', title: 'プリンセス', subtitle: '', illustrationIds: [] },
+  { id: 'monsters', title: 'モンスター', subtitle: '', illustrationIds: [] },
 ]
+
+export const CATEGORY_GROUPS: CategoryGroup[] = [
+  {
+    id: 'group-creatures',
+    title: 'いきもの',
+    categoryIds: ['animals', 'birds', 'fish', 'insects', 'living-things', 'amphibians', 'dinosaurs'],
+  },
+  { id: 'group-nature', title: 'しぜん', categoryIds: ['plants', 'weather', 'space'] },
+  {
+    id: 'group-food',
+    title: 'たべもの',
+    categoryIds: ['ringo-mikan-lemon', 'vegetables', 'sweets', 'snacks', 'food'],
+  },
+  { id: 'group-vehicles', title: 'のりもの', categoryIds: ['vehicles', 'trains', 'airplanes', 'ships'] },
+  { id: 'group-living', title: 'くらし', categoryIds: ['home-things', 'rooms', 'tools', 'toys'] },
+  {
+    id: 'group-fashion',
+    title: 'おしゃれ',
+    categoryIds: ['clothes', 'casual-wear', 'world-costumes', 'accessories'],
+  },
+  {
+    id: 'group-patterns',
+    title: 'もよう',
+    categoryIds: [
+      'patterns-asia',
+      'patterns-europe',
+      'patterns-africa',
+      'patterns-america',
+      'patterns-oceania',
+      'patterns',
+    ],
+  },
+  {
+    id: 'group-symbols',
+    title: 'シンボル',
+    categoryIds: ['flags', 'signal-flags', 'road-signs', 'safety-marks'],
+  },
+  { id: 'group-seasons', title: 'きせつ', categoryIds: ['spring', 'summer', 'autumn', 'winter'] },
+  { id: 'group-fantasy', title: 'ファンタジー', categoryIds: ['fairies', 'princesses', 'monsters'] },
+]
+
+/** 小カテゴリーIDから、それが入っている大カテゴリーを引く */
+export function findCategoryGroup(categoryId: string): CategoryGroup | undefined {
+  return CATEGORY_GROUPS.find((group) => group.categoryIds.includes(categoryId))
+}
+
+/** 「アジア」「そのほか」のように単独ではわかりにくい名前は、一覧などでは fullTitle を使う */
+export function categoryDisplayTitle(category: { title: string; fullTitle?: string }): string {
+  return category.fullTitle ?? category.title
+}

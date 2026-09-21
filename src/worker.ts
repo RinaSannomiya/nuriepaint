@@ -1,5 +1,6 @@
 import { verifyPassword } from 'better-auth/crypto'
 import { createAuth, type Env } from './auth'
+import { LINEART_CATEGORY_IDS } from './illustrations/categoryIds'
 
 type SessionUser = {
   id: string
@@ -89,23 +90,6 @@ const DEFAULT_SWATCHES = [
   { name: '黒', hex: '#1c1c1e' },
 ]
 
-const LINEART_CATEGORY_IDS = new Set([
-  'ringo-mikan-lemon',
-  'animals',
-  'snacks',
-  'flags',
-  'clothes',
-  'home-things',
-  'plants',
-  'insects',
-  'dinosaurs',
-  'living-things',
-  'fish',
-  'patterns',
-  'vehicles',
-  'food',
-  'tools',
-])
 const PROFILE_MOTIF_IDS = new Set(['boy', 'girl', 'apple', 'dinosaur', 'teddy', 'dots', 'checker'])
 
 export default {
