@@ -81,7 +81,7 @@ export function Stage(props: {
         <div className="stageTitleBlock">
           <div className="stageTitleRow">
             <div className="stageTitle">{props.illustration.title}</div>
-            {props.quizMode ? <span className="quizModeBadge">{props.challengeProgress ? 'チャレンジ' : 'クイズモード'}</span> : null}
+            {props.quizMode ? <span className="quizModeBadge">{props.challengeProgress ? 'ぬりえテスト' : 'クイズモード'}</span> : null}
           </div>
           <div className="stageSub">{props.illustration.subtitle}</div>
           {props.challengeProgress ? <div className="challengeProgress">{props.challengeProgress}</div> : null}

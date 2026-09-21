@@ -4,6 +4,8 @@ import { DEFAULT_SWATCHES, Palette } from './components/Palette'
 import { IllustrationThumb } from './components/IllustrationThumb'
 import { Sidebar } from './components/Sidebar'
 import { CheckBadge } from './components/CheckBadge'
+import { ChallengeSidebar } from './components/ChallengeSidebar'
+import { DrumRoll } from './components/DrumRoll'
 import { isWhiteColor } from './lib/color'
 import { Stage } from './components/Stage'
 import { ILLUSTRATIONS, ILLUSTRATION_CATEGORIES, type IllustrationCategory, type IllustrationDef } from './illustrations/illustrations'
@@ -145,9 +147,11 @@ type QuizCategoryProgress = {
   totalCount: number
 }
 
-// 連続正解チャレンジ: 一覧画面で出題数を決め、そのカテゴリー（まなぶ一覧ではすべて）からランダムに出題する
+// チャレンジモード: カテゴリーのぬりえ一覧画面で、出題数と難易度を決めて、そのカテゴリーからランダムに出題する
+type ChallengeDifficulty = 'easy' | 'normal' | 'hard'
 type QuizChallenge = {
-  categoryId: string | null // null は「すべてのカテゴリー」
+  categoryId: string
+  difficulty: ChallengeDifficulty
   poolIds: string[]
   ids: string[]
   index: number
@@ -155,8 +159,14 @@ type QuizChallenge = {
   lastScore: number
   phase: 'answering' | 'answered' | 'finished'
 }
-type ChallengeCount = number | 'all'
-const CHALLENGE_COUNT_OPTIONS = [5, 10, 20]
+// 出題数のよく使う候補（ドラムロールの下にボタンで並べる。「全問」はカテゴリーの問題数）
+const CHALLENGE_PRESET_COUNTS = [5, 10, 20]
+// 難易度はまだ出題には使っていない（選択だけできる）
+const CHALLENGE_DIFFICULTIES: { id: ChallengeDifficulty; label: string }[] = [
+  { id: 'easy', label: 'かんたん' },
+  { id: 'normal', label: 'ふつう' },
+  { id: 'hard', label: 'むずかしい' },
+]
 
 const QUIZ_CATEGORY_IDS = new Set(['flags', 'signal-flags'])
 const PROFILE_MOTIFS: ProfileMotif[] = [
@@ -277,7 +287,10 @@ function App() {
   const [dynamicQuizConfigs, setDynamicQuizConfigs] = useState<Record<string, QuizConfig>>({})
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null)
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([])
-  const [challengeCount, setChallengeCount] = useState<ChallengeCount>(10)
+  const [challengeCount, setChallengeCount] = useState(10)
+  const [challengeDifficulty, setChallengeDifficulty] = useState<ChallengeDifficulty>('normal')
+  const [challengeSetupOpen, setChallengeSetupOpen] = useState(false)
+  const [challengeResetOpen, setChallengeResetOpen] = useState(false)
   const [challengeState, setChallengeState] = useState<QuizChallenge | null>(null)
   const [challengeQuitOpen, setChallengeQuitOpen] = useState(false)
   const challengeBusyRef = useRef(false)
@@ -498,22 +511,16 @@ function App() {
   const fills = selected ? state.fillsByIllustration[selected] ?? {} : {}
   const selectedQuiz = selected ? quizConfigs[selected] ?? null : null
   const illustrationById = useMemo(() => new Map(allIllustrations.map((it) => [it.id, it])), [allIllustrations])
-  // いま開いている一覧（カテゴリー or まなぶ）からチャレンジで出せる問題
+  // いま開いているカテゴリーから、チャレンジで出せる問題
   const challengePoolIds = useMemo(() => {
-    const categories = selectedCategory ? [selectedCategory] : showQuizCatalog ? quizCategories : []
-    const ids = new Set<string>()
-    for (const category of categories) {
-      for (const id of category.illustrationIds) {
-        if (quizConfigs[id] && illustrationById.get(id)?.referenceImage) ids.add(id)
-      }
-    }
-    return [...ids]
-  }, [illustrationById, quizCategories, quizConfigs, selectedCategory, showQuizCatalog])
+    if (!selectedCategory) return []
+    return selectedCategory.illustrationIds.filter((id) => quizConfigs[id] && illustrationById.get(id)?.referenceImage)
+  }, [illustrationById, quizConfigs, selectedCategory])
   // チャレンジ中の問題を開いている間だけ有効（別のぬりえを開いたら自然に無効になる）
   const challenge = challengeState && (challengeState.phase === 'finished' || (quizMode && selected === challengeState.ids[challengeState.index])) ? challengeState : null
   const challengeRunning = challenge !== null && challenge.phase !== 'finished'
   const challengeLabel = challenge && challengeRunning
-    ? `${challenge.index + 1} / ${challenge.ids.length}問目 ・ 連続正解 ${challengeStreak(challenge.results)}`
+    ? `${challenge.index + 1} / ${challenge.ids.length}問目 ・ 正解 ${challenge.results.filter(Boolean).length}問`
     : undefined
   const selectedQuizSwatches = useMemo(() => {
     if (!selected || !selectedQuiz) return null
@@ -1185,14 +1192,15 @@ function App() {
 
   function startChallenge() {
     const pool = challengePoolIds
-    if (!pool.length) return
-    const count = challengeCount === 'all' ? pool.length : Math.min(challengeCount, pool.length)
+    if (!pool.length || !selectedCategory) return
+    const count = Math.max(1, Math.min(challengeCount, pool.length))
     const ids = pickChallengeIds(pool, count, savedIllustrationIds)
     challengeBusyRef.current = false
     challengeArmedRef.current = quizSelectionArmed
     setChallengeQuitOpen(false)
-    if (!selectedCategory) setCategoryReturnPage('learn')
-    setChallengeState({ categoryId: selectedCategory?.id ?? null, poolIds: pool, ids, index: 0, results: [], lastScore: 0, phase: 'answering' })
+    setChallengeResetOpen(false)
+    setChallengeSetupOpen(false)
+    setChallengeState({ categoryId: selectedCategory.id, difficulty: challengeDifficulty, poolIds: pool, ids, index: 0, results: [], lastScore: 0, phase: 'answering' })
     chooseIllustration(ids[0], { forceQuiz: true, challenge: true, scrollSidebarToTop: false })
   }
 
@@ -1212,6 +1220,7 @@ function App() {
     if (!challenge) return
     const ids = pickChallengeIds(challenge.poolIds, challenge.ids.length, savedIllustrationIds)
     challengeBusyRef.current = false
+    setChallengeResetOpen(false)
     setChallengeState({ ...challenge, ids, index: 0, results: [], lastScore: 0, phase: 'answering' })
     chooseIllustration(ids[0], { forceQuiz: true, challenge: true, scrollSidebarToTop: false })
   }
@@ -1222,7 +1231,8 @@ function App() {
     challengeBusyRef.current = false
     setChallengeState(null)
     setChallengeQuitOpen(false)
-    if (!current || current.categoryId === null) {
+    setChallengeResetOpen(false)
+    if (!current) {
       openQuizCatalog()
       return
     }
@@ -1947,59 +1957,128 @@ function App() {
     )
   }
 
-  function renderChallengeBar() {
+  function renderChallengeButton() {
+    if (!challengePoolIds.length) return null
+    return (
+      <button className="btn challengeModeButton" type="button" onClick={() => setChallengeSetupOpen(true)}>
+        ぬりえテスト
+      </button>
+    )
+  }
+
+  function renderChallengeSetupModal() {
+    if (!challengeSetupOpen || !selectedCategory) return null
     const poolSize = challengePoolIds.length
     if (!poolSize) return null
-    const numericOptions = CHALLENGE_COUNT_OPTIONS.filter((n) => n < poolSize)
-    const effective = challengeCount === 'all' || challengeCount >= poolSize ? poolSize : challengeCount
-    const isAll = effective === poolSize
+    const count = Math.max(1, Math.min(challengeCount, poolSize))
     const savedInPool = challengePoolIds.filter((id) => savedIllustrationIds.has(id)).length
+    const changeCount = (value: number) => setChallengeCount(Math.max(1, Math.min(poolSize, Math.round(value))))
+    // ドラムロールのほかに、よく使う出題数をワンタップで選べるようにする（カテゴリーの問題数より少ないものだけ）
+    const presetCounts = CHALLENGE_PRESET_COUNTS.filter((n) => n < poolSize)
     return (
-      <section className="challengeBar" aria-label="連続正解チャレンジ">
-        <div className="challengeBarText">
-          <strong>連続正解チャレンジ</strong>
-          <span>
-            {selectedCategory ? `「${selectedCategory.title}」` : 'すべてのカテゴリー'}からランダムに出題！何問つづけて正解できるかな？
-          </span>
-          {savedInPool > 0 ? <span>マイギャラリーに保存したぬりえ（{savedInPool}枚）を優先して出題します。</span> : null}
-        </div>
-        <div className="challengeControls">
-          <div className="challengeCountPicker" role="radiogroup" aria-label="出題数">
-            {numericOptions.map((n) => (
-              <button key={n} type="button" role="radio" aria-checked={!isAll && effective === n} className="challengeChip" onClick={() => setChallengeCount(n)}>
-                {n}問
-              </button>
-            ))}
-            <button type="button" role="radio" aria-checked={isAll} className="challengeChip" onClick={() => setChallengeCount('all')}>
-              全部（{poolSize}問）
+      <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="ぬりえテスト">
+        <div className="modal challengeSetupPanel">
+          <div className="modalHead">
+            <div>
+              <div className="modalTitle">ぬりえテスト</div>
+              <div className="modalSub">「{selectedCategory.title}」からランダムに出題！何問つづけて正解できるかな？</div>
+            </div>
+            <button className="btn iconButton quizResultCloseButton" type="button" onClick={() => setChallengeSetupOpen(false)} aria-label="閉じる" title="閉じる">
+              <span aria-hidden="true" />
             </button>
           </div>
-          <button className="btn primaryAction challengeStartButton" type="button" onClick={startChallenge}>
-            {effective}問チャレンジ！
-          </button>
+          <div className="challengeSetupBody">
+            <section className="challengeSetupSection" aria-labelledby="challenge-count-label">
+              <div className="challengeSetupLabel">
+                <span id="challenge-count-label">出題数</span>
+              </div>
+              <div className="challengeDial">
+                <button className="btn challengeDialStep" type="button" onClick={() => changeCount(count - 1)} disabled={count <= 1} aria-label="1問へらす">−</button>
+                <DrumRoll min={1} max={poolSize} value={count} onChange={changeCount} unit="問" label="出題数" />
+                <button className="btn challengeDialStep" type="button" onClick={() => changeCount(count + 1)} disabled={count >= poolSize} aria-label="1問ふやす">＋</button>
+              </div>
+              <div className="challengePresets" role="radiogroup" aria-label="出題数をえらぶ">
+                {presetCounts.map((n) => (
+                  <button key={n} className="challengePresetChip" type="button" role="radio" aria-checked={count === n} onClick={() => changeCount(n)}>
+                    {n}問
+                  </button>
+                ))}
+                <button className="challengePresetChip" type="button" role="radio" aria-checked={count === poolSize} onClick={() => changeCount(poolSize)}>
+                  全問
+                </button>
+              </div>
+              <p className="challengeSetupNote">このカテゴリーには全部で{poolSize}問あります。</p>
+              {savedInPool > 0 ? <p className="challengeSetupNote">マイギャラリーに保存したぬりえ（{savedInPool}枚）を優先して出題します。</p> : null}
+            </section>
+            <section className="challengeSetupSection" aria-labelledby="challenge-difficulty-label">
+              <div className="challengeSetupLabel">
+                <span id="challenge-difficulty-label">むずかしさ</span>
+              </div>
+              <div className="challengeDifficulty" role="radiogroup" aria-labelledby="challenge-difficulty-label">
+                {CHALLENGE_DIFFICULTIES.map((option) => (
+                  <label className="challengeDifficultyOption" key={option.id}>
+                    <input
+                      type="radio"
+                      name="challenge-difficulty"
+                      checked={challengeDifficulty === option.id}
+                      onChange={() => setChallengeDifficulty(option.id)}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </section>
+            <button className="btn primaryAction challengeStartButton" type="button" onClick={startChallenge}>
+              スタート
+            </button>
+          </div>
         </div>
-      </section>
+      </div>
     )
   }
 
   function renderChallengeModals() {
     if (challengeQuitOpen && challengeRunning) {
       return (
-        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="チャレンジをやめる">
+        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="ぬりえテストをやめる">
           <div className="modal quizResultPanel challengeResultPanel">
             <div className="modalHead">
               <div>
-                <div className="modalTitle">チャレンジをやめますか？</div>
+                <div className="modalTitle">ぬりえテストをやめますか？</div>
               </div>
             </div>
             <div className="quizResultBody">
-              <p>ここまでのチャレンジの結果はなくなります。</p>
+              <p>ここまでのぬりえテストの結果はなくなります。</p>
               <div className="challengeResultActions">
                 <button className="btn primaryAction" type="button" onClick={() => setChallengeQuitOpen(false)}>
                   つづける
                 </button>
                 <button className="btn" type="button" onClick={exitChallenge}>
                   やめる
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    if (challengeResetOpen && challengeRunning) {
+      return (
+        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="ぬりえテストをやりなおす">
+          <div className="modal quizResultPanel challengeResultPanel">
+            <div className="modalHead">
+              <div>
+                <div className="modalTitle">1問目からやりなおしますか？</div>
+              </div>
+            </div>
+            <div className="quizResultBody">
+              <p>ここまでの結果はなくなります。問題は同じ出題数で新しく選びなおします。</p>
+              <div className="challengeResultActions">
+                <button className="btn primaryAction" type="button" onClick={restartChallenge}>
+                  やりなおす
+                </button>
+                <button className="btn" type="button" onClick={() => setChallengeResetOpen(false)}>
+                  つづける
                 </button>
               </div>
             </div>
@@ -2015,7 +2094,7 @@ function App() {
       const lastCorrect = challenge.results[challenge.results.length - 1] === true
       const isLast = challenge.index + 1 >= total
       return (
-        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="チャレンジの判定結果">
+        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="ぬりえテストの判定結果">
           <div className="modal quizResultPanel challengeResultPanel">
             <div className="modalHead">
               <div>
@@ -2051,11 +2130,11 @@ function App() {
     }
     const perfect = correct === total
     return (
-      <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="チャレンジ結果">
+      <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="ぬりえテスト結果">
         <div className="modal quizResultPanel challengeResultPanel">
           <div className="modalHead">
             <div>
-              <div className="modalTitle">チャレンジ結果</div>
+              <div className="modalTitle">ぬりえテスト結果</div>
             </div>
           </div>
           <div className="quizResultBody">
@@ -2495,7 +2574,7 @@ function App() {
               <button className="navLink editingSettingsNavButton" type="button" onClick={() => setSettingsOpen(true)}>
                 設定
               </button>
-              {quizMode ? <span className="topQuizModeBadge">{challengeRunning ? 'チャレンジ' : 'クイズモード'}</span> : null}
+              {quizMode ? <span className="topQuizModeBadge">{challengeRunning ? 'ぬりえテスト' : 'クイズモード'}</span> : null}
               <button className="btn illustrationTopButton" type="button" onClick={() => setSelected(null)}>
                 ぬりえを選ぶ
               </button>
@@ -2535,8 +2614,16 @@ function App() {
       {selected ? (
         <>
           <div className="layout">
-            <aside className={`rail ${challengeRunning ? 'challengeLocked' : ''}`} inert={challengeRunning}>
-              <Sidebar selected={selected} illustrations={displayedCategoryIllustrations.length ? displayedCategoryIllustrations : undefined} checkedIds={checkedIds} checkKind={checkKind} onSelect={(id) => chooseIllustration(id, { scrollSidebarToTop: false })} onBackToCategories={backToCategorySelection} scrollToTopToken={gallerySidebarScrollToken} />
+            <aside className="rail">
+              {challenge ? (
+                <ChallengeSidebar
+                  total={challenge.ids.length}
+                  current={Math.min(challenge.index + 1, challenge.ids.length)}
+                  correct={challenge.results.filter(Boolean).length}
+                  answered={challenge.results.map((passed, index) => ({ illustration: illustrationById.get(challenge.ids[index]) ?? null, correct: passed }))}
+                  onReset={() => setChallengeResetOpen(true)}
+                />
+              ) : <Sidebar selected={selected} illustrations={displayedCategoryIllustrations.length ? displayedCategoryIllustrations : undefined} checkedIds={checkedIds} checkKind={checkKind} onSelect={(id) => chooseIllustration(id, { scrollSidebarToTop: false })} onBackToCategories={backToCategorySelection} scrollToTopToken={gallerySidebarScrollToken} />}
             </aside>
 
             <main className="main">
@@ -3209,6 +3296,7 @@ function App() {
                 <button className="btn categoryBackButton" type="button" onClick={backToCategorySelection}>
                   カテゴリー選択へ
                 </button>
+                {selectedCategoryHasQuiz ? renderChallengeButton() : null}
                 {selectedCategoryHasQuiz ? renderQuizModeSwitch() : null}
               </div>
             ) : showQuizCatalog ? (
@@ -3217,7 +3305,6 @@ function App() {
               </div>
             ) : null}
             </div>
-          {(selectedCategory ? selectedCategoryHasQuiz : showQuizCatalog) ? renderChallengeBar() : null}
           {selectedCategory ? (
             <section className="homeGrid" aria-label="イラスト一覧">
               {displayedCategoryIllustrations.map((it, idx) => (
@@ -3432,6 +3519,7 @@ function App() {
         </div>
       ) : null}
       {renderChallengeModals()}
+      {renderChallengeSetupModal()}
       {quizResult ? (
         <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="クイズ結果">
           <div className="modal quizResultPanel">

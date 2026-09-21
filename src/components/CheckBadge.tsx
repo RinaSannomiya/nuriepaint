@@ -7,10 +7,10 @@ const CHECK_ICONS: Record<CheckKind, { src: string; label: string }> = {
   saved: { src: '/icons/check-coral.png', label: 'マイギャラリーに保存ずみ' },
 }
 
-export function CheckBadge(props: { kind: CheckKind; className?: string }) {
+export function CheckBadge(props: { kind: CheckKind; className?: string; label?: string }) {
   const icon = CHECK_ICONS[props.kind]
   return (
-    <span className={`learnedBadge ${props.className ?? ''}`} role="img" aria-label={icon.label}>
+    <span className={`learnedBadge ${props.className ?? ''}`} role="img" aria-label={props.label ?? icon.label}>
       <img src={icon.src} alt="" draggable={false} />
     </span>
   )
