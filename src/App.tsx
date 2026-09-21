@@ -5,6 +5,8 @@ import { IllustrationThumb } from './components/IllustrationThumb'
 import { Sidebar } from './components/Sidebar'
 import { CheckBadge } from './components/CheckBadge'
 import { CategoryDropdown } from './components/CategoryDropdown'
+import { CategoryChips } from './components/CategoryChips'
+import { GroupedLineartView } from './components/GroupedLineartView'
 import { ChallengeSidebar } from './components/ChallengeSidebar'
 import { DrumRoll } from './components/DrumRoll'
 import { isWhiteColor } from './lib/color'
@@ -173,6 +175,15 @@ type RecordCategory = {
   rows: RecordRow[]
   savedCount: number
   learnedCount: number
+}
+// 大カテゴリー単位の記録。children は、その中の小カテゴリー（ぬりえがあるものだけ）
+type RecordGroup = RecordCategory & { children: RecordCategory[] }
+// マイギャラリー「カテゴリー別」の1区分。大カテゴリー（categories に、その中の小カテゴリー）か、「すべて」「その他」
+type GallerySection = {
+  id: string
+  title: string
+  items: SavedColoring[]
+  categories?: { id: string; title: string; items: SavedColoring[] }[]
 }
 
 // チャレンジモード: カテゴリーのぬりえ一覧画面で、出題数と難易度を決めて、そのカテゴリーからランダムに出題する
@@ -673,6 +684,8 @@ function App() {
     () => buildRecordCategories(playCategories, () => true, illustrationById, savedIllustrationIds, learnedQuizIds, firstLearnedAtById),
     [firstLearnedAtById, illustrationById, learnedQuizIds, playCategories, savedIllustrationIds],
   )
+  const recordLearnGroups = useMemo(() => buildRecordGroups(recordLearnCategories), [recordLearnCategories])
+  const recordPlayGroups = useMemo(() => buildRecordGroups(recordPlayCategories), [recordPlayCategories])
   const colorModeDescription = {
     rgb: 'RGBは光の三原色。液晶画面の色と同じように、赤・緑・青の光を重ねて色を作ります。',
     cmy: 'CMYは色の三原色。絵の具を混ぜる感覚に近く、シアン・マゼンタ・イエローで色を作ります。',
@@ -700,7 +713,7 @@ function App() {
       .filter((section) => section.items.length > 0)
   }, [publicLinearts])
 
-  const savedGallerySections = useMemo(() => {
+  const savedGallerySections = useMemo<GallerySection[]>(() => {
     const illustrationOrder = new Map(ILLUSTRATIONS.map((it, index) => [it.id, index]))
     const categoryOrderIndex = new Map(ILLUSTRATION_CATEGORIES.map((category, index) => [category.id, index]))
     const itemSorter = (left: SavedColoring, right: SavedColoring) => {
@@ -743,7 +756,15 @@ function App() {
       .filter((item) => !ILLUSTRATION_CATEGORIES.some((category) => category.illustrationIds.includes(item.illustrationId)))
       .sort(itemSorter)
 
-    return unknownItems.length ? [...categorySections, { id: 'unknown', title: 'その他', items: unknownItems }] : categorySections
+    // 大カテゴリーごとにまとめる（その中の小カテゴリーは categories に持たせて、チップで切り替える）
+    const groupSections: GallerySection[] = CATEGORY_GROUPS.map((group) => {
+      const categories = group.categoryIds
+        .map((id) => categorySections.find((section) => section.id === id))
+        .filter((section): section is (typeof categorySections)[number] => Boolean(section))
+      return { id: group.id, title: group.title, items: categories.flatMap((section) => section.items).sort(itemSorter), categories }
+    }).filter((section) => (section.categories?.length ?? 0) > 0)
+
+    return unknownItems.length ? [...groupSections, { id: 'unknown', title: 'その他', items: unknownItems }] : groupSections
   }, [galleryGroupMode, galleryPublishFilter, gallerySortBasis, gallerySortDirection, savedColorings])
 
   const savedGalleryTotalCount = useMemo(
@@ -751,10 +772,18 @@ function App() {
     [savedGallerySections],
   )
 
+  // 「カテゴリー別」で開いている大カテゴリー（activeGalleryCategoryId は、大カテゴリーか小カテゴリーのID）
+  const activeGalleryGroup = useMemo(() => {
+    if (galleryGroupMode !== 'category') return null
+    return savedGallerySections.find((section) => section.id === activeGalleryCategoryId || section.categories?.some((category) => category.id === activeGalleryCategoryId))
+      ?? savedGallerySections[0] ?? null
+  }, [activeGalleryCategoryId, galleryGroupMode, savedGallerySections])
+  // いま表示しているぬりえの区分（大カテゴリーの全部、またはチップで選んだ小カテゴリー）
   const activeGallerySection = useMemo(() => {
     if (galleryGroupMode !== 'category') return savedGallerySections[0] ?? null
-    return savedGallerySections.find((section) => section.id === activeGalleryCategoryId) ?? savedGallerySections[0] ?? null
-  }, [activeGalleryCategoryId, galleryGroupMode, savedGallerySections])
+    if (!activeGalleryGroup) return null
+    return activeGalleryGroup.categories?.find((category) => category.id === activeGalleryCategoryId) ?? activeGalleryGroup
+  }, [activeGalleryCategoryId, activeGalleryGroup, galleryGroupMode, savedGallerySections])
 
   const refreshMe = useCallback(async (): Promise<AuthUser | null> => {
     const res = await fetch('/api/me', { credentials: 'include' })
@@ -2196,16 +2225,31 @@ function App() {
   // マイギャラリー「カテゴリー別」: 表示するカテゴリーは1つだけ。プルダウンで切り替える（PC・タブレット・スマホ共通）
   function renderSavedGalleryCategoryPicker(className = '') {
     if (galleryGroupMode !== 'category' || !savedGallerySections.length) return null
+    const group = activeGalleryGroup
+    const chipCategories = group?.categories ?? []
     return (
-      <div className={`galleryCategoryPicker ${className}`}>
-        <span className="galleryControlLabel">カテゴリー</span>
-        <CategoryDropdown
-          ariaLabel="カテゴリーを選ぶ"
-          value={activeGallerySection?.id ?? null}
-          options={savedGallerySections.map((section) => ({ id: section.id, label: section.title, count: section.items.length }))}
-          onChange={setActiveGalleryCategoryId}
-        />
-      </div>
+      <>
+        <div className={`galleryCategoryPicker ${className}`}>
+          <span className="galleryControlLabel">カテゴリー</span>
+          <CategoryDropdown
+            ariaLabel="カテゴリーを選ぶ"
+            value={group?.id ?? null}
+            options={savedGallerySections.map((section) => ({ id: section.id, label: section.title, count: section.items.length }))}
+            onChange={setActiveGalleryCategoryId}
+          />
+        </div>
+        {group && chipCategories.length >= 2 ? (
+          <CategoryChips
+            compact
+            className={`galleryCategoryChips ${className}`}
+            ariaLabel={`${group.title}をしぼりこむ`}
+            activeId={activeGallerySection && activeGallerySection.id !== group.id ? activeGallerySection.id : null}
+            allNote={group.items.length}
+            items={chipCategories.map((category) => ({ id: category.id, label: categoryShortTitle(category.id, category.title), note: category.items.length }))}
+            onChange={(id) => setActiveGalleryCategoryId(id ?? group.id)}
+          />
+        ) : null}
+      </>
     )
   }
 
@@ -2690,11 +2734,14 @@ function App() {
   // kind='learn'（まなぶ）: クイズがあるぬりえの「ぬった」「クイズせいかい」 / kind='play'（あそぶ）: すべてのぬりえの「ぬった」
   function renderRecordPanel(kind: 'learn' | 'play') {
     const isLearn = kind === 'learn'
-    const categories = isLearn ? recordLearnCategories : recordPlayCategories
+    const categories = isLearn ? recordLearnGroups : recordPlayGroups
     const activeId = isLearn ? recordLearnCategoryId : recordPlayCategoryId
     const setActiveId = isLearn ? setRecordLearnCategoryId : setRecordPlayCategoryId
-    const active = categories.find((category) => category.id === activeId) ?? categories[0] ?? null
-    if (!active) {
+    // 記録は大カテゴリーのボタンで選び、その中の小カテゴリーはチップで切り替える（activeId は大カテゴリーか小カテゴリーのID）
+    const activeGroup = categories.find((category) => category.id === activeId || category.children.some((child) => child.id === activeId)) ?? categories[0] ?? null
+    const activeChild = activeGroup?.children.find((child) => child.id === activeId) ?? null
+    const active: RecordCategory | null = activeChild ?? activeGroup
+    if (!activeGroup || !active) {
       return (
         <p className="emptyInline">
           {isLearn ? 'クイズにできるぬりえがまだありません。' : 'ぬりえがまだありません。'}
@@ -2714,7 +2761,7 @@ function App() {
         <div className="galleryCategoryButtons recordCategoryButtons" role="group" aria-label="カテゴリーを選ぶ">
           {categories.map((category) => (
             <button
-              className={`galleryCategoryButton recordCategoryButton ${active.id === category.id ? 'activeGalleryCategory' : ''}`}
+              className={`galleryCategoryButton recordCategoryButton ${activeGroup.id === category.id ? 'activeGalleryCategory' : ''}`}
               type="button"
               key={category.id}
               onClick={() => setActiveId(category.id)}
@@ -2724,6 +2771,21 @@ function App() {
             </button>
           ))}
         </div>
+        {activeGroup.children.length >= 2 ? (
+          <CategoryChips
+            compact
+            className="recordCategoryChips"
+            ariaLabel={`${activeGroup.title}をしぼりこむ`}
+            activeId={activeChild ? activeChild.id : null}
+            allNote={`${isLearn ? activeGroup.learnedCount : activeGroup.savedCount}/${activeGroup.rows.length}`}
+            items={activeGroup.children.map((child) => ({
+              id: child.id,
+              label: categoryShortTitle(child.id, child.title),
+              note: `${isLearn ? child.learnedCount : child.savedCount}/${child.rows.length}`,
+            }))}
+            onChange={(id) => setActiveId(id ?? activeGroup.id)}
+          />
+        ) : null}
         <section className="recordCategory" aria-label={`${active.title}の一覧`}>
           <div className="recordCategoryHead">
             <h2>{active.title}</h2>
@@ -3213,43 +3275,15 @@ function App() {
                       <h2 id="my-linearts-title">自分のぬりえ</h2>
                       <p>公開すると、ほかの人があそぶに追加できるようになります。</p>
                     </div>
-                    {myLineartSections.length ? (() => {
-                      const active = myLineartSections.find((s) => s.id === myLineartCategoryFilter) ?? null
-                      if (!active) {
-                        return (
-                          <section className="homeGrid categoryGrid" aria-label="自分のぬりえのカテゴリー一覧">
-                            {myLineartSections.map((section) => (
-                              <button
-                                key={section.id}
-                                type="button"
-                                className="homeCard categoryCard"
-                                onClick={() => setMyLineartCategoryFilter(section.id)}
-                              >
-                                <div className="categoryThumb" aria-hidden="true">
-                                  {section.items.slice(0, 4).map((item) => (
-                                    <div className="thumbPaper" key={item.id}>
-                                      <img className="thumbImage" src={item.imageUrl} alt="" />
-                                    </div>
-                                  ))}
-                                </div>
-                                <div className="homeMeta">
-                                  <strong>{section.title}</strong>
-                                  <span>{section.items.length}枚</span>
-                                </div>
-                              </button>
-                            ))}
-                          </section>
-                        )
-                      }
-                      return (
-                        <>
-                          <div className="introActions lineartCategoryActiveHead">
-                            <button className="btn categoryBackButton" type="button" onClick={() => setMyLineartCategoryFilter(null)}>
-                              カテゴリー選択へ
-                            </button>
-                          </div>
-                          <div className="publicGrid" aria-label={`自分のぬりえ - ${active.title}`}>
-                            {active.items.map((item, idx) => (
+                    {myLineartSections.length ? (
+                      <GroupedLineartView
+                        sections={myLineartSections}
+                        filter={myLineartCategoryFilter}
+                        onFilterChange={setMyLineartCategoryFilter}
+                        cardsLabel="自分のぬりえのカテゴリー一覧"
+                        renderItems={(items, title) => (
+                          <div className="publicGrid" aria-label={`自分のぬりえ - ${title}`}>
+                            {items.map((item, idx) => (
                               <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
                                 <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: '自分のぬりえ', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
                                   <img src={item.imageUrl} alt={item.title} />
@@ -3272,9 +3306,9 @@ function App() {
                               </figure>
                             ))}
                           </div>
-                        </>
-                      )
-                    })() : <p className="emptyInline">まだアップロードしたぬりえはありません。</p>}
+                        )}
+                      />
+                    ) : <p className="emptyInline">まだアップロードしたぬりえはありません。</p>}
                   </section>
                 </>
               ) : (
@@ -3291,43 +3325,15 @@ function App() {
                   <h2 id="public-linearts-title">みんなのぬりえ</h2>
                   <p>気に入ったぬりえを、あそぶの中に追加できます。</p>
                 </div>
-                {publicLineartSections.length ? (() => {
-                  const active = publicLineartSections.find((s) => s.id === publicLineartCategoryFilter) ?? null
-                  if (!active) {
-                    return (
-                      <section className="homeGrid categoryGrid" aria-label="みんなのぬりえのカテゴリー一覧">
-                        {publicLineartSections.map((section) => (
-                          <button
-                            key={section.id}
-                            type="button"
-                            className="homeCard categoryCard"
-                            onClick={() => setPublicLineartCategoryFilter(section.id)}
-                          >
-                            <div className="categoryThumb" aria-hidden="true">
-                              {section.items.slice(0, 4).map((item) => (
-                                <div className="thumbPaper" key={item.id}>
-                                  <img className="thumbImage" src={item.imageUrl} alt="" />
-                                </div>
-                              ))}
-                            </div>
-                            <div className="homeMeta">
-                              <strong>{section.title}</strong>
-                              <span>{section.items.length}枚</span>
-                            </div>
-                          </button>
-                        ))}
-                      </section>
-                    )
-                  }
-                  return (
-                    <>
-                      <div className="introActions lineartCategoryActiveHead">
-                        <button className="btn categoryBackButton" type="button" onClick={() => setPublicLineartCategoryFilter(null)}>
-                          カテゴリー選択へ
-                        </button>
-                      </div>
-                      <div className="publicGrid" aria-label={`みんなのぬりえ - ${active.title}`}>
-                        {active.items.map((item, idx) => (
+                {publicLineartSections.length ? (
+                  <GroupedLineartView
+                    sections={publicLineartSections}
+                    filter={publicLineartCategoryFilter}
+                    onFilterChange={setPublicLineartCategoryFilter}
+                    cardsLabel="みんなのぬりえのカテゴリー一覧"
+                    renderItems={(items, title) => (
+                      <div className="publicGrid" aria-label={`みんなのぬりえ - ${title}`}>
+                        {items.map((item, idx) => (
                           <figure className="publicCard lineartDisplayCard" key={item.id} style={{ ['--card-accent' as never]: getLoopCardAccent(idx) }}>
                             <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: item.authorName ? `${item.authorName} さん` : 'ぬりえペイント', imageUrl: item.imageUrl, reportKind: 'ぬりえ', reportId: item.id })}>
                               <img src={item.imageUrl} alt={item.title} />
@@ -3351,9 +3357,9 @@ function App() {
                           </figure>
                         ))}
                       </div>
-                    </>
-                  )
-                })() : <p className="emptyInline">公開されているぬりえはまだありません。</p>}
+                    )}
+                  />
+                ) : <p className="emptyInline">公開されているぬりえはまだありません。</p>}
               </section>
             </section>
           ) : showGalleryPage ? (
@@ -3664,27 +3670,12 @@ function App() {
             ) : null}
             </div>
           {categoryChipBar ? (
-            <nav className="categoryChips" aria-label="カテゴリーをしぼりこむ">
-              <button
-                type="button"
-                className={`categoryChip ${viewingGroupAll ? 'activeChip' : ''}`}
-                aria-pressed={viewingGroupAll}
-                onClick={() => chooseCategoryChip(categoryChipBar.groupId)}
-              >
-                すべて
-              </button>
-              {categoryChipBar.chips.map((chip) => (
-                <button
-                  key={chip.id}
-                  type="button"
-                  className={`categoryChip ${!viewingGroupAll && chip.id === selectedCategoryId ? 'activeChip' : ''}`}
-                  aria-pressed={!viewingGroupAll && chip.id === selectedCategoryId}
-                  onClick={() => chooseCategoryChip(chip.id)}
-                >
-                  {chip.title}
-                </button>
-              ))}
-            </nav>
+            <CategoryChips
+              ariaLabel="カテゴリーをしぼりこむ"
+              activeId={viewingGroupAll ? null : selectedCategoryId}
+              items={categoryChipBar.chips.map((chip) => ({ id: chip.id, label: chip.title }))}
+              onChange={(id) => chooseCategoryChip(id ?? categoryChipBar.groupId)}
+            />
           ) : null}
           {selectedCategory ? (
             <section className="homeGrid" aria-label="イラスト一覧">
@@ -5224,6 +5215,28 @@ function buildRecordCategories(
       }
     })
     .filter((category) => category.rows.length > 0)
+}
+
+// 小カテゴリーごとの記録を、大カテゴリー単位にまとめる（ぬりえがある小カテゴリーだけが children になる）
+function buildRecordGroups(categories: RecordCategory[]): RecordGroup[] {
+  return CATEGORY_GROUPS.map((group) => {
+    const children = group.categoryIds
+      .map((id) => categories.find((category) => category.id === id))
+      .filter((category): category is RecordCategory => Boolean(category))
+    return {
+      id: group.id,
+      title: group.title,
+      rows: children.flatMap((child) => child.rows),
+      savedCount: children.reduce((sum, child) => sum + child.savedCount, 0),
+      learnedCount: children.reduce((sum, child) => sum + child.learnedCount, 0),
+      children,
+    }
+  }).filter((group) => group.children.length > 0)
+}
+
+// チップに出す、小カテゴリーの短い名前（「アジアのもよう」ではなく、大カテゴリーの中で通じる「アジア」）
+function categoryShortTitle(categoryId: string, fallback: string) {
+  return ILLUSTRATION_CATEGORIES.find((category) => category.id === categoryId)?.title ?? fallback
 }
 
 function mergeLibraryLineartsIntoCategories(categories: IllustrationCategory[], linearts: LibraryLineArt[]) {

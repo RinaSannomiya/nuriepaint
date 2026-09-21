@@ -900,6 +900,48 @@ input[type="checkbox"]:checked::after {
   outline-offset: 2px;
 }
 
+.categoryChipNote {
+  margin-left: 8px;
+  font-size: 0.8em;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.categoryChip.activeChip .categoryChipNote {
+  opacity: 0.9;
+}
+
+/* マイギャラリー・ぬりえの記録・ひろげる用の、小さめのチップ */
+.categoryChips.compactChips {
+  max-width: none;
+  margin: 0 0 18px;
+  gap: 8px;
+}
+
+.categoryChips.compactChips .categoryChip {
+  min-height: 34px;
+  padding: 6px 14px;
+  border-width: 2px;
+  font-size: 13px;
+}
+
+.categoryChips.galleryCategoryChips.pageGalleryCategoryPicker {
+  margin: -10px 0 26px;
+}
+
+.categoryChips.galleryCategoryChips.modalGalleryCategoryPicker {
+  padding: 10px 14px 0;
+  margin: 0;
+}
+
+.categoryChips.recordCategoryChips {
+  margin: -8px 0 22px;
+}
+
+.categoryChips.lineartCategoryChips {
+  margin: 12px 0 20px;
+}
+
 .categoryThumb {
   height: 260px;
   display: grid;
