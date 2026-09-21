@@ -29,6 +29,9 @@ import { RasterLineArt, type RasterPaintCommand } from './illustrations/svgs/Ras
 // アカウント画面から開く、クイズの正解／ぬった（マイギャラリーに保存ずみ）を一覧するページの名前。名前を変えるときはここだけ直す。
 const RECORD_PAGE_TITLE = 'ぬりえの記録'
 
+// 大カテゴリーの画面で、小カテゴリーを「チップ」として出す最低枚数。これより少ない枠のぬりえは「すべて」にだけ出る。
+const CATEGORY_CHIP_MIN_COUNT = 3
+
 type FillMap = Record<string, string>
 type HistoryState = {
   fillsByIllustration: Record<string, FillMap>
@@ -492,6 +495,15 @@ function App() {
   const learnCategories = useMemo(() => {
     return buildLearnCategories(ILLUSTRATION_CATEGORIES, libraryLinearts)
   }, [libraryLinearts])
+  // 大カテゴリーごとに、中の小カテゴリー（ユーザーが追加したぬりえを含む）とイラストIDをまとめたもの
+  const playGroups = useMemo(() => {
+    return CATEGORY_GROUPS.map((group) => {
+      const categories = group.categoryIds
+        .map((id) => playCategories.find((category) => category.id === id))
+        .filter((category): category is IllustrationCategory => Boolean(category))
+      return { group, categories, illustrationIds: categories.flatMap((category) => category.illustrationIds) }
+    })
+  }, [playCategories])
   const fallbackQuizConfigs = useMemo(() => {
     return Object.fromEntries(
       libraryIllustrations
@@ -524,9 +536,30 @@ function App() {
   const selectedCategory = useMemo(() => {
     if (!selectedCategoryId) return null
     if (secretMode && selectedCategoryId === SECRET_FIRST_CATEGORY.id) return SECRET_FIRST_CATEGORY
+    // 大カテゴリーの「すべて」（IDは group- で始まる）。中の小カテゴリーのぬりえを順に並べる
+    if (isGroupCategoryId(selectedCategoryId)) {
+      const entry = playGroups.find((it) => it.group.id === selectedCategoryId)
+      return entry ? { id: entry.group.id, title: entry.group.title, subtitle: '', illustrationIds: entry.illustrationIds } : null
+    }
     const categories = categoryReturnPage === 'learn' ? learnCategories : playCategories
     return categories.find((category) => category.id === selectedCategoryId) ?? null
-  }, [categoryReturnPage, learnCategories, playCategories, secretMode, selectedCategoryId])
+  }, [categoryReturnPage, learnCategories, playCategories, playGroups, secretMode, selectedCategoryId])
+  // 大カテゴリーの「すべて」を開いているか（ぬりえテスト・チャレンジは小カテゴリーごとなので、ここでは出さない）
+  const viewingGroupAll = Boolean(selectedCategory && selectedCategoryId && isGroupCategoryId(selectedCategoryId))
+  // いま開いているカテゴリーが属する大カテゴリーと、そこに並べるチップ（すべて＋3枚以上の小カテゴリー）
+  const categoryChipBar = useMemo(() => {
+    if (!selectedCategory || !selectedCategoryId || categoryReturnPage === 'learn') return null
+    if (secretMode && selectedCategoryId === SECRET_FIRST_CATEGORY.id) return null
+    const groupId = isGroupCategoryId(selectedCategoryId) ? selectedCategoryId : findCategoryGroup(selectedCategoryId)?.id
+    const entry = playGroups.find((it) => it.group.id === groupId)
+    if (!entry) return null
+    const chips = entry.categories.filter((category) => category.illustrationIds.length >= CATEGORY_CHIP_MIN_COUNT || category.id === selectedCategoryId)
+    // 小カテゴリーのチップが1つもない大カテゴリーは、チップの行を出さない（「すべて」だけになるため）。
+    // チップが1つだけで、その中身が「すべて」と同じ（大カテゴリーのぬりえがすべてその小カテゴリーにある）ときも、出しても切り替わらないので出さない
+    if (chips.length === 0) return null
+    if (chips.length === 1 && chips[0].illustrationIds.length === entry.illustrationIds.length) return null
+    return { groupId: entry.group.id, chips }
+  }, [categoryReturnPage, playGroups, secretMode, selectedCategory, selectedCategoryId])
 
   const categoryIllustrations = useMemo(() => {
     if (!selectedCategory) return []
@@ -535,34 +568,48 @@ function App() {
       .filter((it): it is IllustrationDef => Boolean(it))
   }, [allIllustrations, selectedCategory])
   const selectedCategoryHasQuiz = useMemo(() => {
+    if (viewingGroupAll) return false
     return Boolean(selectedCategory?.illustrationIds.some((id) => quizConfigs[id]))
-  }, [quizConfigs, selectedCategory])
+  }, [quizConfigs, selectedCategory, viewingGroupAll])
   const displayedCategoryIllustrations = useMemo(() => {
     if (!quizSelectionArmed) return categoryIllustrations
     return categoryIllustrations.filter((it) => Boolean(quizConfigs[it.id]) || Boolean(it.referenceImage))
   }, [categoryIllustrations, quizConfigs, quizSelectionArmed])
 
   const quizCategories = useMemo(() => learnCategories, [learnCategories])
-  // あそぶ／まなぶ／ホームのカテゴリー一覧。大カテゴリーごとに見出しを入れ、イラストが0枚の「枠」は出さない
+  // あそぶ／ホームのカテゴリー一覧は「大カテゴリー」のカード。まなぶは、これまで通り小カテゴリー（国旗など）のカードを、大カテゴリーの見出しの下に並べる。
+  // イラストが0枚の枠・大カテゴリーは出さない
   const catalogItems = useMemo(() => {
-    const source = showQuizCatalog
-      ? quizCategories
-      : showPlayCatalog
-        ? (secretMode ? [SECRET_FIRST_CATEGORY, ...playCategories] : playCategories)
-        : ILLUSTRATION_CATEGORIES
     const items: CatalogItem[] = []
-    let lastGroupId: string | null = null
     let index = 0
-    for (const category of source) {
-      if (category.illustrationIds.length === 0) continue
-      const group = findCategoryGroup(category.id)
-      if (group && group.id !== lastGroupId) items.push({ type: 'group', id: group.id, title: group.title })
-      lastGroupId = group?.id ?? null
-      items.push({ type: 'category', category, index })
+    if (showQuizCatalog) {
+      let lastGroupId: string | null = null
+      for (const category of quizCategories) {
+        if (category.illustrationIds.length === 0) continue
+        const group = findCategoryGroup(category.id)
+        if (group && group.id !== lastGroupId) items.push({ type: 'group', id: group.id, title: group.title })
+        lastGroupId = group?.id ?? null
+        items.push({ type: 'category', category, index })
+        index += 1
+      }
+      return items
+    }
+    if (secretMode) {
+      items.push({ type: 'category', category: SECRET_FIRST_CATEGORY, index })
+      index += 1
+    }
+    for (const entry of playGroups) {
+      if (entry.illustrationIds.length === 0) continue
+      items.push({
+        type: 'category',
+        // カードの絵は、小カテゴリーごとの先頭から1枚ずつ選んで、いろいろな種類が見えるようにする
+        category: { id: entry.group.id, title: entry.group.title, subtitle: '', illustrationIds: pickPreviewIds(entry.categories) },
+        index,
+      })
       index += 1
     }
     return items
-  }, [playCategories, quizCategories, secretMode, showPlayCatalog, showQuizCatalog])
+  }, [playGroups, quizCategories, secretMode, showQuizCatalog])
   const lpPreviewIllustrations = useMemo(() => {
     return ['apple', 'snack-05', 'flag-001']
       .map((id) => ILLUSTRATIONS.find((it) => it.id === id))
@@ -579,9 +626,9 @@ function App() {
   const illustrationById = useMemo(() => new Map(allIllustrations.map((it) => [it.id, it])), [allIllustrations])
   // いま開いているカテゴリーから、チャレンジで出せる問題
   const challengePoolIds = useMemo(() => {
-    if (!selectedCategory) return []
+    if (!selectedCategory || viewingGroupAll) return []
     return selectedCategory.illustrationIds.filter((id) => quizConfigs[id] && illustrationById.get(id)?.referenceImage)
-  }, [illustrationById, quizConfigs, selectedCategory])
+  }, [illustrationById, quizConfigs, selectedCategory, viewingGroupAll])
   // 難易度ごとの出題プール。プールが空の難易度（学習用のかんたん・むずかしいなど）は選べない
   const challengePools = useMemo(() => buildChallengePools(challengePoolIds), [challengePoolIds])
   const challengePoolSizes = useMemo<Record<ChallengeDifficulty, number>>(() => ({
@@ -873,12 +920,21 @@ function App() {
   function chooseIllustration(id: string, opts?: { scrollSidebarToTop?: boolean; forceQuiz?: boolean; challenge?: boolean }) {
     // かくしページから選んだときは、左カラムの一覧もはじめの8枚の並びのままにする
     const inSecretCategory = secretMode && selectedCategoryId === SECRET_FIRST_CATEGORY.id && SECRET_FIRST_CATEGORY.illustrationIds.includes(id)
-    const category = inSecretCategory ? SECRET_FIRST_CATEGORY : playCategories.find((it) => it.illustrationIds.includes(id))
-    if (category) {
-      if (category.id !== selectedCategoryId && !opts?.challenge) {
+    // いま開いているカテゴリー（小カテゴリーでも大カテゴリーの「すべて」でも）にそのぬりえがあるときは、そのまま使う
+    const currentViewHasIt = Boolean(selectedCategoryId && selectedCategory?.illustrationIds.includes(id))
+    const inLearn = showQuizCatalog || categoryReturnPage === 'learn'
+    const nextViewId = inSecretCategory
+      ? SECRET_FIRST_CATEGORY.id
+      : currentViewHasIt
+        ? selectedCategoryId
+        : inLearn
+          ? playCategories.find((it) => it.illustrationIds.includes(id))?.id ?? null
+          : categoryViewIdFor(id)
+    if (nextViewId) {
+      if (nextViewId !== selectedCategoryId && !opts?.challenge) {
         setCategoryReturnPage(showQuizCatalog ? 'learn' : 'play')
       }
-      setSelectedCategoryId(category.id)
+      setSelectedCategoryId(nextViewId)
     }
     // あそぶのカテゴリー一覧やLPなど、サイドバーの外からこのイラストを選んだときは
     // 左カラムのイラスト一覧もそのイラストが一番上に来るようスクロールする。
@@ -920,6 +976,23 @@ function App() {
     setShowGalleryPage(false)
     setShowSavedPage(false)
     setShowRecordPage(false)
+    setQuizSelectionArmed(false)
+    setQuizMode(false)
+    setQuizResult(null)
+  }
+
+  // ぬりえを開くときに、左カラムの一覧として使うカテゴリー。3枚以上ある小カテゴリーはそのまま、それより少ない枠は大カテゴリーの「すべて」にする
+  function categoryViewIdFor(illustrationId: string): string | null {
+    const category = playCategories.find((it) => it.illustrationIds.includes(illustrationId))
+    if (!category) return null
+    if (category.illustrationIds.length >= CATEGORY_CHIP_MIN_COUNT) return category.id
+    return findCategoryGroup(category.id)?.id ?? category.id
+  }
+
+  // 大カテゴリーの画面のチップ（すべて／小カテゴリー）を切り替える
+  function chooseCategoryChip(id: string) {
+    setSelected(null)
+    setSelectedCategoryId(id)
     setQuizSelectionArmed(false)
     setQuizMode(false)
     setQuizResult(null)
@@ -2032,9 +2105,9 @@ function App() {
       setStatus('この塗り絵の元イラストが見つかりません。')
       return
     }
-    const category = playCategories.find((it) => it.illustrationIds.includes(item.illustrationId))
-    if (category) {
-      setSelectedCategoryId(category.id)
+    const nextViewId = categoryViewIdFor(item.illustrationId)
+    if (nextViewId) {
+      setSelectedCategoryId(nextViewId)
       setCategoryReturnPage('play')
     }
     const restoreSeq = Date.now()
@@ -3578,6 +3651,29 @@ function App() {
               </div>
             ) : null}
             </div>
+          {categoryChipBar ? (
+            <nav className="categoryChips" aria-label="カテゴリーをしぼりこむ">
+              <button
+                type="button"
+                className={`categoryChip ${viewingGroupAll ? 'activeChip' : ''}`}
+                aria-pressed={viewingGroupAll}
+                onClick={() => chooseCategoryChip(categoryChipBar.groupId)}
+              >
+                すべて
+              </button>
+              {categoryChipBar.chips.map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  className={`categoryChip ${!viewingGroupAll && chip.id === selectedCategoryId ? 'activeChip' : ''}`}
+                  aria-pressed={!viewingGroupAll && chip.id === selectedCategoryId}
+                  onClick={() => chooseCategoryChip(chip.id)}
+                >
+                  {chip.title}
+                </button>
+              ))}
+            </nav>
+          ) : null}
           {selectedCategory ? (
             <section className="homeGrid" aria-label="イラスト一覧">
               {displayedCategoryIllustrations.map((it, idx) => (
@@ -5145,6 +5241,18 @@ function buildLearnCategories(categories: IllustrationCategory[], linearts: Libr
 
 function getProfileMotifImage(motifId: string) {
   return PROFILE_MOTIFS.find((motif) => motif.id === motifId)?.imageUrl ?? `/profile-motifs/${motifId}.png`
+}
+
+// 大カテゴリーの「すべて」を表すID（CATEGORY_GROUPS の id は group- で始まる）
+function isGroupCategoryId(id: string) {
+  return id.startsWith('group-')
+}
+
+// 大カテゴリーのカードに出す絵。小カテゴリーの先頭から1枚ずつ、そのあとに残りを順に並べる
+function pickPreviewIds(categories: IllustrationCategory[]): string[] {
+  const firsts = categories.map((category) => category.illustrationIds[0]).filter((id): id is string => Boolean(id))
+  const rest = categories.flatMap((category) => category.illustrationIds.slice(1))
+  return [...firsts, ...rest].slice(0, 4)
 }
 
 type CatalogItem =
