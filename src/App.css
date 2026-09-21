@@ -6784,7 +6784,7 @@ input[type="checkbox"]:checked::after {
   opacity: 1;
 }
 
-/* ===== ぬりえずかん（クイズ・ぬったの一覧ページ。名前は App.tsx の RECORD_PAGE_TITLE） ===== */
+/* ===== ぬりえの記録（クイズ・ぬったの一覧ページ。名前は App.tsx の RECORD_PAGE_TITLE） ===== */
 .recordToolPage .toolIntro h1 {
   color: var(--accent);
 }

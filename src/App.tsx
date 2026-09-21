@@ -15,7 +15,7 @@ import { FLAG_DIFFICULTY_DATA } from './illustrations/flagDifficultyData'
 import { RasterLineArt, type RasterPaintCommand } from './illustrations/svgs/RasterLineArt'
 
 // アカウント画面から開く、クイズの正解／ぬった（マイギャラリーに保存ずみ）を一覧するページの名前。名前を変えるときはここだけ直す。
-const RECORD_PAGE_TITLE = 'ぬりえずかん'
+const RECORD_PAGE_TITLE = 'ぬりえの記録'
 
 type FillMap = Record<string, string>
 type HistoryState = {
@@ -597,7 +597,7 @@ function App() {
       })
       .filter((progress) => progress.attemptedCount > 0)
   }, [allIllustrations, learnCategories, learnedQuizIds, quizAttempts, quizConfigs])
-  // 「${RECORD_PAGE_TITLE}」ページ用: カテゴリーごとに、ぬりえ全部の「ぬった（マイギャラリーに保存ずみ）」「クイズせいかい」を並べる
+  // 「ぬりえの記録」ページ用: カテゴリーごとに、ぬりえ全部の「ぬった（マイギャラリーに保存ずみ）」「クイズせいかい」を並べる
   const recordLearnCategories = useMemo(
     () => buildRecordCategories(learnCategories, (id) => Boolean(quizConfigs[id]), illustrationById, savedIllustrationIds, learnedQuizIds),
     [illustrationById, learnCategories, learnedQuizIds, quizConfigs, savedIllustrationIds],
@@ -3367,7 +3367,7 @@ function App() {
                 </>
               ) : (
                 <div className="lockedPanel">
-                  <p>{RECORD_PAGE_TITLE}を使うにはログインしてください。</p>
+                  <p>{RECORD_PAGE_TITLE}を見るにはログインしてください。</p>
                   <button className="btn loginTopButton" type="button" onClick={() => setAuthOpen(true)}>ログイン</button>
                 </div>
               )}
