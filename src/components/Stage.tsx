@@ -3,7 +3,7 @@ import type { CSSProperties, PointerEvent, TouchList } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { RasterPaintCommand } from '../illustrations/svgs/RasterLineArt'
 
-const MAX_ART_ZOOM = 10
+const MAX_ART_ZOOM = 20
 
 export function Stage(props: {
   illustration: IllustrationDef | null
@@ -109,10 +109,10 @@ export function Stage(props: {
             <button className="btn zoomResetButton mobileStageZoomResetButton" type="button" onClick={() => props.onZoomChange(1)} disabled={props.zoom <= 1} aria-label="100%に戻す" title="100%に戻す">
               100%
             </button>
-            <button className="btn iconButton" type="button" onClick={() => props.onZoomChange((value) => Math.max(1, Number((value - 0.25).toFixed(2))))} disabled={props.zoom <= 1} aria-label="縮小" title="縮小">
+            <button className="btn iconButton" type="button" onClick={() => props.onZoomChange((value) => clampZoom(value - getZoomStep(value)))} disabled={props.zoom <= 1} aria-label="縮小" title="縮小">
               <ZoomOutIcon />
             </button>
-            <button className="btn iconButton" type="button" onClick={() => props.onZoomChange((value) => Math.min(MAX_ART_ZOOM, Number((value + 0.25).toFixed(2))))} disabled={props.zoom >= MAX_ART_ZOOM} aria-label="拡大" title="拡大">
+            <button className="btn iconButton" type="button" onClick={() => props.onZoomChange((value) => clampZoom(value + getZoomStep(value)))} disabled={props.zoom >= MAX_ART_ZOOM} aria-label="拡大" title="拡大">
               <ZoomInIcon />
             </button>
           </div>
@@ -141,7 +141,7 @@ export function Stage(props: {
         onWheel={(ev) => {
           if (!ev.ctrlKey && !ev.metaKey) return
           ev.preventDefault()
-          const nextZoom = clampZoom(props.zoom + (ev.deltaY < 0 ? 0.25 : -0.25))
+          const nextZoom = clampZoom(props.zoom + (ev.deltaY < 0 ? 1 : -1) * getZoomStep(props.zoom))
           zoomAnchorRef.current = {
             fromZoom: props.zoom,
             toZoom: nextZoom,
@@ -291,6 +291,12 @@ function getTwoFingerTouchInfo(touches: TouchList) {
     centerY: (first.clientY + second.clientY) / 2,
     startedAt: performance.now(),
   }
+}
+
+// 拡大・縮小1回あたりの変化量。低倍率では従来どおり 0.25 刻み、高倍率では倍率に比例して大きくして、
+// 上限（MAX_ART_ZOOM）まで何十回も押さなくてよいようにする。
+function getZoomStep(value: number) {
+  return Math.max(0.25, value * 0.15)
 }
 
 function clampZoom(value: number) {
