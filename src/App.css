@@ -829,7 +829,18 @@ input[type="checkbox"]:checked::after {
 }
 
 .categoryGrid {
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* 300px より狭い画面でも、列が画面からはみ出さないようにする（min(300px, 100%)） */
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+}
+
+/* 中身（画像・見出し）の大きさに引っぱられて、列やカードが画面より広がらないようにする */
+.categoryGrid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.categoryGrid .categoryThumb {
+  min-width: 0;
 }
 
 /* 大カテゴリーの見出し（いきもの・たべもの…）。グリッドの1行ぶんを使う */
@@ -837,8 +848,10 @@ input[type="checkbox"]:checked::after {
   grid-column: 1 / -1;
   margin: 18px 0 -20px;
   padding-left: 14px;
-  border-left: 8px solid var(--accent-yellow-dark);
+  border-left: 8px solid var(--accent-green);
   color: var(--ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: clamp(22px, 2.4vw, 28px);
   font-weight: 800;
   line-height: 1.2;
@@ -5868,12 +5881,19 @@ input[type="checkbox"]:checked::after {
   }
 
   .categoryGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .categoryGrid .categoryGroupHeading {
     margin: 10px 0 -14px;
     border-left-width: 6px;
+    font-size: 22px;
+  }
+
+  /* スマホでは、カテゴリー一覧のページを横にスクロールさせない */
+  .playCatalogPage,
+  .quizCatalogPage {
+    overflow-x: hidden;
   }
 
   .categoryThumb {
