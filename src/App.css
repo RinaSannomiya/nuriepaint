@@ -672,64 +672,56 @@ input[type="checkbox"]:checked::after {
 .homePage .categoryCard,
 .playCatalogPage .categoryCard,
 .quizCatalogPage .categoryCard,
-.spreadToolPage .categoryCard,
-.savedToolPage .categoryCard {
+.spreadToolPage .categoryCard {
   background: var(--category-card-color, #29a2de);
 }
 
 .homePage .categoryCard:nth-child(7n + 1),
 .playCatalogPage .categoryCard:nth-child(7n + 1),
 .quizCatalogPage .categoryCard:nth-child(7n + 1),
-.spreadToolPage .categoryCard:nth-child(7n + 1),
-.savedToolPage .categoryCard:nth-child(7n + 1) {
+.spreadToolPage .categoryCard:nth-child(7n + 1) {
   --category-card-color: #feb61c;
 }
 
 .homePage .categoryCard:nth-child(7n + 2),
 .playCatalogPage .categoryCard:nth-child(7n + 2),
 .quizCatalogPage .categoryCard:nth-child(7n + 2),
-.spreadToolPage .categoryCard:nth-child(7n + 2),
-.savedToolPage .categoryCard:nth-child(7n + 2) {
+.spreadToolPage .categoryCard:nth-child(7n + 2) {
   --category-card-color: #29a2de;
 }
 
 .homePage .categoryCard:nth-child(7n + 3),
 .playCatalogPage .categoryCard:nth-child(7n + 3),
 .quizCatalogPage .categoryCard:nth-child(7n + 3),
-.spreadToolPage .categoryCard:nth-child(7n + 3),
-.savedToolPage .categoryCard:nth-child(7n + 3) {
+.spreadToolPage .categoryCard:nth-child(7n + 3) {
   --category-card-color: #ef6950;
 }
 
 .homePage .categoryCard:nth-child(7n + 4),
 .playCatalogPage .categoryCard:nth-child(7n + 4),
 .quizCatalogPage .categoryCard:nth-child(7n + 4),
-.spreadToolPage .categoryCard:nth-child(7n + 4),
-.savedToolPage .categoryCard:nth-child(7n + 4) {
+.spreadToolPage .categoryCard:nth-child(7n + 4) {
   --category-card-color: #29a2de;
 }
 
 .homePage .categoryCard:nth-child(7n + 5),
 .playCatalogPage .categoryCard:nth-child(7n + 5),
 .quizCatalogPage .categoryCard:nth-child(7n + 5),
-.spreadToolPage .categoryCard:nth-child(7n + 5),
-.savedToolPage .categoryCard:nth-child(7n + 5) {
+.spreadToolPage .categoryCard:nth-child(7n + 5) {
   --category-card-color: #ef6950;
 }
 
 .homePage .categoryCard:nth-child(7n + 6),
 .playCatalogPage .categoryCard:nth-child(7n + 6),
 .quizCatalogPage .categoryCard:nth-child(7n + 6),
-.spreadToolPage .categoryCard:nth-child(7n + 6),
-.savedToolPage .categoryCard:nth-child(7n + 6) {
+.spreadToolPage .categoryCard:nth-child(7n + 6) {
   --category-card-color: #feb61c;
 }
 
 .homePage .categoryCard:nth-child(7n),
 .playCatalogPage .categoryCard:nth-child(7n),
 .quizCatalogPage .categoryCard:nth-child(7n),
-.spreadToolPage .categoryCard:nth-child(7n),
-.savedToolPage .categoryCard:nth-child(7n) {
+.spreadToolPage .categoryCard:nth-child(7n) {
   --category-card-color: #ef6950;
 }
 
@@ -740,9 +732,7 @@ input[type="checkbox"]:checked::after {
 .quizCatalogPage .categoryCard .homeMeta strong,
 .quizCatalogPage .categoryCard .homeMeta span,
 .spreadToolPage .categoryCard .homeMeta strong,
-.savedToolPage .categoryCard .homeMeta strong,
-.spreadToolPage .categoryCard .homeMeta span,
-.savedToolPage .categoryCard .homeMeta span {
+.spreadToolPage .categoryCard .homeMeta span {
   color: #fff;
 }
 
@@ -4038,10 +4028,6 @@ input[type="checkbox"]:checked::after {
   margin-bottom: 14px;
 }
 
-.pageGalleryCategories {
-  margin-bottom: 26px;
-}
-
 .galleryCategoryButton {
   min-height: 42px;
   border: 0;
@@ -7102,5 +7088,160 @@ input[type="checkbox"]:checked::after {
   .recordStat {
     flex: 1 1 140px;
     min-width: 0;
+  }
+}
+
+/* マイギャラリー「カテゴリー別」のプルダウン（カテゴリーは1つずつ表示） */
+.galleryCategoryPicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.galleryCategoryPicker.pageGalleryCategoryPicker {
+  margin-bottom: 26px;
+}
+
+.galleryCategoryPicker.modalGalleryCategoryPicker {
+  padding: 12px 14px 0;
+  margin-bottom: 0;
+}
+
+.categoryDropdown {
+  position: relative;
+  flex: 1 1 240px;
+  max-width: 340px;
+}
+
+.categoryDropdown.isOpen {
+  z-index: 30;
+}
+
+.categoryDropdownButton {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: #f6fafc;
+  color: var(--ink);
+  padding: 8px 12px 8px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+.categoryDropdownButton:hover {
+  background: #edf5f9;
+}
+
+.categoryDropdownButton:focus-visible,
+.categoryDropdown.isOpen .categoryDropdownButton {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--accent-blue);
+  outline: none;
+}
+
+.categoryDropdownValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.categoryDropdownCount {
+  flex: 0 0 auto;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(41, 162, 222, 0.14);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.categoryDropdownChevron {
+  flex: 0 0 auto;
+  color: var(--accent-blue);
+  transition: transform 160ms ease;
+}
+
+.categoryDropdown.isOpen .categoryDropdownChevron {
+  transform: rotate(180deg);
+}
+
+.categoryDropdownList {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  max-height: min(340px, 52vh);
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  overflow-y: auto;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--line), 0 14px 34px var(--shadow);
+  display: grid;
+  gap: 2px;
+}
+
+.categoryDropdownOption {
+  min-height: 44px;
+  padding: 8px 12px 8px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.categoryDropdownOptionLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.categoryDropdownOption.isActive {
+  background: #f6fafc;
+}
+
+.categoryDropdownOption.isSelected {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.categoryDropdownOption.isSelected .categoryDropdownCount {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .galleryCategoryPicker {
+    gap: 6px;
+  }
+
+  .categoryDropdown {
+    flex: 1 1 100%;
+    max-width: none;
   }
 }
