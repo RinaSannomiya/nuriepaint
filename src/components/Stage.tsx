@@ -87,6 +87,11 @@ export function Stage(props: {
           {props.challengeProgress ? <div className="challengeProgress">{props.challengeProgress}</div> : null}
         </div>
         <div className="stageHeaderActions">
+          {!props.quizMode && props.quizAvailable ? (
+            <button className="btn quizModeToggleButton" type="button" onClick={props.onStartQuiz}>
+              クイズモードへ
+            </button>
+          ) : null}
           <div className="tabletStageQuickActions">
             <button className="btn" type="button" onClick={props.onOpenSaved}>
               マイギャラリー
@@ -121,10 +126,6 @@ export function Stage(props: {
                 完成！
               </button>
             </>
-          ) : props.quizAvailable ? (
-            <button className="btn quizModeToggleButton" type="button" onClick={props.onStartQuiz}>
-              クイズモードへ
-            </button>
           ) : null}
           {!props.quizMode && props.illustration.referenceImage ? (
             <button className="btn referenceButton" type="button" onClick={() => setReferenceOpen(true)}>
