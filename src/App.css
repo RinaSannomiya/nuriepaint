@@ -2211,6 +2211,41 @@ input[type="checkbox"]:checked::after {
   background: var(--accent-blue-dark);
 }
 
+/* 「続きから」があるときは、みんなの作品ボタンをまん中、続きからを右下に置く */
+.imagePreviewCommunityActions.hasContinue {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.imagePreviewCommunityActions.hasContinue .imagePreviewCommunityButton {
+  grid-column: 2;
+}
+
+.imagePreviewCommunityActions.hasContinue .btn.imagePreviewContinueButton {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.imagePreviewCommunityActions .btn.imagePreviewContinueButton {
+  background: var(--accent);
+  color: #fff;
+}
+
+.imagePreviewCommunityActions .btn.imagePreviewContinueButton:hover {
+  background: var(--accent-red-dark);
+}
+
+@media (max-width: 920px) {
+  .imagePreviewCommunityActions.hasContinue {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+}
+
 .spreadLockedPanel {
   display: flex;
   align-items: center;

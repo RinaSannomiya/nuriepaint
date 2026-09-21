@@ -1,5 +1,5 @@
 import './App.css'
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes, type MouseEvent } from 'react'
 import { DEFAULT_SWATCHES, Palette } from './components/Palette'
 import { IllustrationThumb } from './components/IllustrationThumb'
 import { Sidebar } from './components/Sidebar'
@@ -83,6 +83,7 @@ type ImagePreview = {
   reportKind?: '作品' | 'ぬりえ'
   reportId?: string
   illustrationId?: string
+  continueItem?: SavedColoring
 }
 type LibraryLineArt = {
   id: string
@@ -313,8 +314,8 @@ function App() {
   const [authName, setAuthName] = useState('')
   const [authProfile, setAuthProfile] = useState<UserProfile | null>(null)
   const [accountProfileEditing, setAccountProfileEditing] = useState(false)
-  // アカウント画面の枠外クリックで閉じる用: 枠外で「押し始めた」ときだけ閉じる（入力欄の文字選択ドラッグが枠外で終わっても閉じないように）
-  const authBackdropPressRef = useRef(false)
+  // ポップアップの枠外クリックで閉じる用: 枠外で「押し始めた」ときだけ閉じる（入力欄の文字選択ドラッグが枠外で終わっても閉じないように）
+  const backdropPressRef = useRef(false)
   const [accountEmailEditing, setAccountEmailEditing] = useState(false)
   const [accountEmailValue, setAccountEmailValue] = useState('')
   const [accountEmailMessage, setAccountEmailMessage] = useState('')
@@ -1879,6 +1880,24 @@ function App() {
     setStatus('削除しました。')
   }
 
+  // 暗い背景（ポップアップの枠外）をクリックしたら閉じる。オーバーレイ自身の onMouseDown / onClick に展開して使う。
+  function backdropCloseProps(onClose: () => void) {
+    return {
+      onMouseDown: (ev: MouseEvent<HTMLDivElement>) => {
+        const el = ev.currentTarget
+        const rect = el.getBoundingClientRect()
+        // 背景そのものを押したときだけ対象（ポップアップ内は対象外）。スクロールバー上の操作も対象外
+        const onScrollbar = ev.clientX - rect.left >= el.clientWidth || ev.clientY - rect.top >= el.clientHeight
+        backdropPressRef.current = ev.target === el && !onScrollbar
+      },
+      onClick: (ev: MouseEvent<HTMLDivElement>) => {
+        const pressedOnBackdrop = backdropPressRef.current
+        backdropPressRef.current = false
+        if (pressedOnBackdrop && ev.target === ev.currentTarget) onClose()
+      },
+    }
+  }
+
   function continueColoring(item: SavedColoring) {
     const illustration = allIllustrations.find((it) => it.id === item.illustrationId)
     if (!illustration) {
@@ -1899,6 +1918,7 @@ function App() {
     setBrush(false)
     setShowSavedPage(false)
     setGalleryOpen(false)
+    setImagePreview(null)
     window.requestAnimationFrame(() => {
       setRestoreImage({ url: `${item.imageUrl}?restore=${restoreSeq}`, seq: restoreSeq })
     })
@@ -3080,7 +3100,7 @@ function App() {
                         <button
                           className="publicImageButton"
                           type="button"
-                          onClick={() => setImagePreview({ title: item.title, subtitle: 'マイギャラリー', imageUrl: item.imageUrl, illustrationId: item.illustrationId })}
+                          onClick={() => setImagePreview({ title: item.title, subtitle: 'マイギャラリー', imageUrl: item.imageUrl, illustrationId: item.illustrationId, continueItem: item })}
                         >
                           <img src={item.imageUrl} alt={item.title} />
                         </button>
@@ -3396,7 +3416,7 @@ function App() {
         </main>
       )}
       {settingsOpen ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="設定">
+        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="設定" {...backdropCloseProps(() => setSettingsOpen(false))}>
           <div className="modal settingsPanel">
             <div className="modalHead">
               <div>
@@ -3545,14 +3565,7 @@ function App() {
           role="dialog"
           aria-modal="true"
           aria-label="アカウント"
-          onMouseDown={(ev) => {
-            authBackdropPressRef.current = ev.target === ev.currentTarget
-          }}
-          onClick={(ev) => {
-            const pressedOnBackdrop = authBackdropPressRef.current
-            authBackdropPressRef.current = false
-            if (pressedOnBackdrop && ev.target === ev.currentTarget) setAuthOpen(false)
-          }}
+          {...backdropCloseProps(() => setAuthOpen(false))}
         >
           <form className="authPanel" onSubmit={submitAuth}>
             <div className="modalHead">
@@ -4142,7 +4155,7 @@ function App() {
         </div>
       ) : null}
       {galleryOpen ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="マイギャラリー">
+        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="マイギャラリー" {...backdropCloseProps(() => setGalleryOpen(false))}>
           <div className="modal galleryPanel">
             <div className="modalHead">
               <div>
@@ -4178,7 +4191,7 @@ function App() {
                     <div className="galleryGrid">
                       {activeGallerySection.items.map((item) => (
                         <figure className="savedCard" key={item.id}>
-                          <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: 'マイギャラリー', imageUrl: item.imageUrl, illustrationId: item.illustrationId })}>
+                          <button className="publicImageButton" type="button" onClick={() => setImagePreview({ title: item.title, subtitle: 'マイギャラリー', imageUrl: item.imageUrl, illustrationId: item.illustrationId, continueItem: item })}>
                             <img src={item.imageUrl} alt={item.title} />
                           </button>
                           <figcaption>
@@ -4224,11 +4237,18 @@ function App() {
             <div className="imagePreviewBody">
               <img src={imagePreview.imageUrl} alt={imagePreview.title} />
             </div>
-            {imagePreview.illustrationId && !isLearningColoring(imagePreview.illustrationId) ? (
-              <div className="imagePreviewActions imagePreviewCommunityActions">
-                <button className="btn" type="button" onClick={() => viewCommunityForIllustration(imagePreview.illustrationId!)}>
-                  みんなの作品もみてみる
-                </button>
+            {(imagePreview.illustrationId && !isLearningColoring(imagePreview.illustrationId)) || imagePreview.continueItem ? (
+              <div className={`imagePreviewActions imagePreviewCommunityActions ${imagePreview.continueItem ? 'hasContinue' : ''}`}>
+                {imagePreview.illustrationId && !isLearningColoring(imagePreview.illustrationId) ? (
+                  <button className="btn imagePreviewCommunityButton" type="button" onClick={() => viewCommunityForIllustration(imagePreview.illustrationId!)}>
+                    みんなの作品もみてみる
+                  </button>
+                ) : null}
+                {imagePreview.continueItem ? (
+                  <button className="btn imagePreviewContinueButton" type="button" onClick={() => continueColoring(imagePreview.continueItem!)}>
+                    続きから
+                  </button>
+                ) : null}
               </div>
             ) : null}
             {hasReportInfo(imagePreview) ? (
