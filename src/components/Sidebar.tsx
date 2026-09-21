@@ -3,7 +3,7 @@ import { ILLUSTRATIONS, type IllustrationDef, type IllustrationId } from '../ill
 import { IllustrationThumb } from './IllustrationThumb'
 import { CheckBadge, type CheckKind } from './CheckBadge'
 
-export function Sidebar(props: { selected: IllustrationId | null; illustrations?: IllustrationDef[]; checkedIds?: Set<string>; checkKind?: CheckKind; onSelect: (id: IllustrationId) => void; onBackToCategories?: () => void; scrollToTopToken?: number }) {
+export function Sidebar(props: { selected: IllustrationId | null; illustrations?: IllustrationDef[]; checkedIds?: Set<string>; checkKind?: CheckKind; onSelect: (id: IllustrationId) => void; onBackToCategories?: () => void; backLabel?: string; scrollToTopToken?: number }) {
   const illustrations = props.illustrations ?? ILLUSTRATIONS
   const cardsRef = useRef<HTMLDivElement | null>(null)
 
@@ -25,7 +25,7 @@ export function Sidebar(props: { selected: IllustrationId | null; illustrations?
         <span>イラスト</span>
         {props.onBackToCategories ? (
           <button className="sidebarCategoryBackButton" type="button" onClick={props.onBackToCategories}>
-            カテゴリー選択へ
+            {props.backLabel ?? 'カテゴリー選択へ'}
           </button>
         ) : null}
       </div>

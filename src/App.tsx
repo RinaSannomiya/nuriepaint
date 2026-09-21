@@ -1014,6 +1014,18 @@ function App() {
     setQuizResult(null)
   }
 
+  // ぬりえの編集画面から、いま見ていたカテゴリーのぬりえ一覧（小カテゴリー、または大カテゴリーの「すべて」）にもどる。
+  // カテゴリーがないとき（LPから開いたときなど）は、カテゴリー選択の画面にもどる。
+  function backToCategoryList() {
+    if (!selectedCategory) {
+      backToCategorySelection()
+      return
+    }
+    setSelected(null)
+    setQuizMode(false)
+    setQuizResult(null)
+  }
+
   function backToCategorySelection() {
     setSelected(null)
     setSelectedCategoryId(null)
@@ -2959,7 +2971,7 @@ function App() {
                   answered={challenge.results.map((passed, index) => ({ illustration: illustrationById.get(challenge.ids[index]) ?? null, correct: passed }))}
                   onReset={() => setChallengeResetOpen(true)}
                 />
-              ) : <Sidebar selected={selected} illustrations={displayedCategoryIllustrations.length ? displayedCategoryIllustrations : undefined} checkedIds={checkedIds} checkKind={checkKind} onSelect={(id) => chooseIllustration(id, { scrollSidebarToTop: false })} onBackToCategories={backToCategorySelection} scrollToTopToken={gallerySidebarScrollToken} />}
+              ) : <Sidebar selected={selected} illustrations={displayedCategoryIllustrations.length ? displayedCategoryIllustrations : undefined} checkedIds={checkedIds} checkKind={checkKind} onSelect={(id) => chooseIllustration(id, { scrollSidebarToTop: false })} onBackToCategories={backToCategoryList} backLabel={selectedCategory ? '一覧へもどる' : undefined} scrollToTopToken={gallerySidebarScrollToken} />}
             </aside>
 
             <main className="main">
