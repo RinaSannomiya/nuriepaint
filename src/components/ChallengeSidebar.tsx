@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { IllustrationDef } from '../illustrations/illustrations'
 import { CheckBadge } from './CheckBadge'
 import { IllustrationThumb } from './IllustrationThumb'
@@ -15,6 +16,18 @@ export function ChallengeSidebar(props: {
 }) {
   const done = props.answered.length
   const items = props.answered.map((item, index) => ({ ...item, number: index + 1 }))
+  // 答え合わせが終わるたびに、いちばん下（最新）のカードが見える位置までスクロールする。
+  // 一覧（.cards）自身だけをスクロールさせる（scrollIntoView だとページ全体が動くことがあるため使わない）
+  const cardsRef = useRef<HTMLDivElement>(null)
+  const prevCountRef = useRef(0)
+  useEffect(() => {
+    const list = cardsRef.current
+    if (list && done > prevCountRef.current) {
+      const reduceMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      list.scrollTo({ top: list.scrollHeight, behavior: reduceMotion || prevCountRef.current === 0 ? 'auto' : 'smooth' })
+    }
+    prevCountRef.current = done
+  }, [done])
   return (
     <div className="sidebar challengeSidebar">
       <div className="sidebarTitle">
@@ -44,7 +57,7 @@ export function ChallengeSidebar(props: {
           <i style={{ width: `${props.total ? (done / props.total) * 100 : 0}%` }} />
         </div>
       </div>
-      <div className="cards" role="list">
+      <div className="cards" role="list" ref={cardsRef}>
         {items.length ? (
           items.map((item) => {
             const illustration = item.illustration
