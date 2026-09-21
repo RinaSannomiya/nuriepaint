@@ -14,6 +14,9 @@ import { SIGNAL_FLAG_QUIZ_DATA } from './illustrations/signalFlagQuizData'
 import { FLAG_DIFFICULTY_DATA } from './illustrations/flagDifficultyData'
 import { RasterLineArt, type RasterPaintCommand } from './illustrations/svgs/RasterLineArt'
 
+// アカウント画面から開く、クイズの正解／ぬった（マイギャラリーに保存ずみ）を一覧するページの名前。名前を変えるときはここだけ直す。
+const RECORD_PAGE_TITLE = 'ぬりえずかん'
+
 type FillMap = Record<string, string>
 type HistoryState = {
   fillsByIllustration: Record<string, FillMap>
@@ -120,6 +123,7 @@ type ViewSnapshot = {
   showCreatePage: boolean
   showSpreadPage: boolean
   showGalleryPage: boolean
+  showSavedPage?: boolean
   quizSelectionArmed: boolean
   quizMode: boolean
 }
@@ -140,6 +144,19 @@ type QuizAttempt = QuizResult & {
   illustrationId: string
   categoryId: string
   createdAt: string
+}
+type RecordRow = {
+  id: string
+  title: string
+  saved: boolean
+  learned: boolean
+}
+type RecordCategory = {
+  id: string
+  title: string
+  rows: RecordRow[]
+  savedCount: number
+  learnedCount: number
 }
 type QuizCategoryProgress = {
   category: IllustrationCategory
@@ -260,6 +277,7 @@ const QUIZ_DUMMY_SWATCHES: PaletteSwatch[] = [
 function App() {
   const homeScrollRef = useRef<HTMLElement | null>(null)
   const savedPageReturnRef = useRef<ViewSnapshot | null>(null)
+  const recordPageReturnRef = useRef<ViewSnapshot | null>(null)
   const authIconEditorRef = useRef<HTMLDivElement | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [gallerySidebarScrollToken, setGallerySidebarScrollToken] = useState(0)
@@ -271,6 +289,10 @@ function App() {
   const [showSpreadPage, setShowSpreadPage] = useState(false)
   const [showGalleryPage, setShowGalleryPage] = useState(false)
   const [showSavedPage, setShowSavedPage] = useState(false)
+  const [showRecordPage, setShowRecordPage] = useState(false)
+  const [recordTab, setRecordTab] = useState<'learn' | 'play'>('learn')
+  const [recordLearnCategoryId, setRecordLearnCategoryId] = useState<string | null>(null)
+  const [recordPlayCategoryId, setRecordPlayCategoryId] = useState<string | null>(null)
   const [color, setColor] = useState('#EF6950')
   const [paletteDraftColor, setPaletteDraftColor] = useState(DEFAULT_SWATCHES[0].hex)
   const [selectedSwatchIndex, setSelectedSwatchIndex] = useState(0)
@@ -575,6 +597,15 @@ function App() {
       })
       .filter((progress) => progress.attemptedCount > 0)
   }, [allIllustrations, learnCategories, learnedQuizIds, quizAttempts, quizConfigs])
+  // 「${RECORD_PAGE_TITLE}」ページ用: カテゴリーごとに、ぬりえ全部の「ぬった（マイギャラリーに保存ずみ）」「クイズせいかい」を並べる
+  const recordLearnCategories = useMemo(
+    () => buildRecordCategories(learnCategories, (id) => Boolean(quizConfigs[id]), illustrationById, savedIllustrationIds, learnedQuizIds),
+    [illustrationById, learnCategories, learnedQuizIds, quizConfigs, savedIllustrationIds],
+  )
+  const recordPlayCategories = useMemo(
+    () => buildRecordCategories(playCategories, () => true, illustrationById, savedIllustrationIds, learnedQuizIds),
+    [illustrationById, learnedQuizIds, playCategories, savedIllustrationIds],
+  )
   const colorModeDescription = {
     rgb: 'RGBは光の三原色。液晶画面の色と同じように、赤・緑・青の光を重ねて色を作ります。',
     cmy: 'CMYは色の三原色。絵の具を混ぜる感覚に近く、シアン・マゼンタ・イエローで色を作ります。',
@@ -777,10 +808,10 @@ function App() {
   useEffect(() => {
     if (!authUser) return
     if (showCreatePage) void loadLinearts()
-    if (showPlayCatalog || showQuizCatalog || showSpreadPage || showSavedPage || galleryOpen) void loadLibraryLinearts()
+    if (showPlayCatalog || showQuizCatalog || showSpreadPage || showSavedPage || showRecordPage || galleryOpen) void loadLibraryLinearts()
     if (showSpreadPage) void loadLinearts()
-    if (showSavedPage) void loadGallery({ openModal: false })
-  }, [authUser, galleryOpen, showCreatePage, showPlayCatalog, showQuizCatalog, showSavedPage, showSpreadPage])
+    if (showSavedPage || showRecordPage) void loadGallery({ openModal: false })
+  }, [authUser, galleryOpen, showCreatePage, showPlayCatalog, showQuizCatalog, showRecordPage, showSavedPage, showSpreadPage])
 
   useEffect(() => {
     let cancelled = false
@@ -817,7 +848,7 @@ function App() {
       document.scrollingElement?.scrollTo({ top: 0, left: 0 })
       homeScrollRef.current?.scrollTo({ top: 0, left: 0 })
     })
-  }, [selected, selectedCategoryId, showPlayCatalog, showQuizCatalog, showCreatePage, showSpreadPage, showGalleryPage, showSavedPage])
+  }, [selected, selectedCategoryId, showPlayCatalog, showQuizCatalog, showCreatePage, showSpreadPage, showGalleryPage, showSavedPage, showRecordPage])
 
   function chooseIllustration(id: string, opts?: { scrollSidebarToTop?: boolean; forceQuiz?: boolean; challenge?: boolean }) {
     const category = playCategories.find((it) => it.illustrationIds.includes(id))
@@ -842,6 +873,7 @@ function App() {
     setShowCreatePage(false)
     setShowSpreadPage(false)
     setShowGalleryPage(false)
+    setShowRecordPage(false)
     setRestoreImage(null)
     setArtZoom(1)
     setEyedropper(false)
@@ -865,6 +897,7 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(false)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setQuizSelectionArmed(false)
     setQuizMode(false)
     setQuizResult(null)
@@ -881,6 +914,7 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(false)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setQuizMode(false)
     setQuizResult(null)
   }
@@ -892,6 +926,7 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(false)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setQuizMode(false)
     setQuizResult(null)
 
@@ -924,6 +959,7 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(false)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setQuizSelectionArmed(false)
     setQuizMode(false)
     setQuizResult(null)
@@ -939,6 +975,7 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(false)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setQuizSelectionArmed(true)
     setQuizMode(false)
     setQuizResult(null)
@@ -953,6 +990,7 @@ function App() {
     setShowSpreadPage(true)
     setShowGalleryPage(false)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     await Promise.all([
       loadPublicLinearts(),
       authUser ? loadLinearts() : Promise.resolve(),
@@ -969,6 +1007,7 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(true)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setGalleryFilterIllustrationId(opts?.illustrationId ?? null)
     await loadPublicColorings()
   }
@@ -988,6 +1027,7 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(false)
     setShowSavedPage(true)
+    setShowRecordPage(false)
     await loadGallery({ openModal: false })
   }
 
@@ -1007,9 +1047,56 @@ function App() {
     setShowSpreadPage(snapshot.showSpreadPage)
     setShowGalleryPage(snapshot.showGalleryPage)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setQuizSelectionArmed(snapshot.quizSelectionArmed)
     setQuizMode(snapshot.quizMode)
     setQuizResult(null)
+  }
+
+  function openRecordPage(opts?: { rememberReturn?: boolean }) {
+    recordPageReturnRef.current = opts?.rememberReturn && !showRecordPage ? captureCurrentView() : null
+    setAuthOpen(false)
+    setSelected(null)
+    setSelectedCategoryId(null)
+    setShowPlayCatalog(false)
+    setShowQuizCatalog(false)
+    setShowCreatePage(false)
+    setShowSpreadPage(false)
+    setShowGalleryPage(false)
+    setShowSavedPage(false)
+    setShowRecordPage(true)
+    setQuizSelectionArmed(false)
+    setQuizMode(false)
+    setQuizResult(null)
+  }
+
+  function closeRecordPage() {
+    const snapshot = recordPageReturnRef.current
+    recordPageReturnRef.current = null
+    if (!snapshot) {
+      goHome()
+      return
+    }
+    setSelected(snapshot.selected)
+    setSelectedCategoryId(snapshot.selectedCategoryId)
+    setCategoryReturnPage(snapshot.categoryReturnPage)
+    setShowPlayCatalog(snapshot.showPlayCatalog)
+    setShowQuizCatalog(snapshot.showQuizCatalog)
+    setShowCreatePage(snapshot.showCreatePage)
+    setShowSpreadPage(snapshot.showSpreadPage)
+    setShowGalleryPage(snapshot.showGalleryPage)
+    setShowSavedPage(snapshot.showSavedPage ?? false)
+    setShowRecordPage(false)
+    setQuizSelectionArmed(snapshot.quizSelectionArmed)
+    setQuizMode(snapshot.quizMode)
+    setQuizResult(null)
+  }
+
+  // 一覧のタイトルから、そのぬりえを開く（クイズの一覧ならクイズモードで、あそぶの一覧なら通常のぬりえで）
+  function openIllustrationFromRecord(id: string, opts?: { quiz?: boolean }) {
+    recordPageReturnRef.current = null
+    chooseIllustration(id, opts?.quiz ? { forceQuiz: true } : undefined)
+    setCategoryReturnPage(opts?.quiz ? 'learn' : 'play')
   }
 
   function captureCurrentView(): ViewSnapshot {
@@ -1022,6 +1109,7 @@ function App() {
       showCreatePage,
       showSpreadPage,
       showGalleryPage,
+      showSavedPage,
       quizSelectionArmed,
       quizMode,
     }
@@ -1263,6 +1351,7 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(false)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setQuizMode(false)
     setQuizSelectionArmed(challengeArmedRef.current)
     setQuizResult(null)
@@ -1293,6 +1382,7 @@ function App() {
     setShowSpreadPage(false)
     setShowGalleryPage(false)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setQuizMode(false)
     setQuizSelectionArmed(true)
     setQuizResult(null)
@@ -1933,6 +2023,7 @@ function App() {
     setEyedropper(false)
     setBrush(false)
     setShowSavedPage(false)
+    setShowRecordPage(false)
     setGalleryOpen(false)
     setImagePreview(null)
     window.requestAnimationFrame(() => {
@@ -2445,6 +2536,103 @@ function App() {
     action()
   }
 
+  function renderRecordStat(label: string, count: number, total: number, tone: 'saved' | 'learned') {
+    const percent = recordPercent(count, total)
+    return (
+      <div className={`recordStat ${tone === 'saved' ? 'recordStatSaved' : 'recordStatLearned'}`} key={tone}>
+        <span className="recordStatLabel">{label}</span>
+        <strong className="recordStatPercent">
+          {percent}
+          <small>%</small>
+        </strong>
+        <span className="recordStatCount">{total}こ中 {count}こ</span>
+        <div className="recordBar" role="progressbar" aria-label={`${label}の達成率`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+          <span style={{ width: `${percent}%` }} />
+        </div>
+      </div>
+    )
+  }
+
+  function renderRecordCheck(done: boolean, kind: 'saved' | 'learned', label: string) {
+    return done
+      ? <CheckBadge kind={kind} label={label} />
+      : <span className="recordCheckEmpty" role="img" aria-label={`${label}: まだ`}>-</span>
+  }
+
+  // kind='learn'（まなぶ）: クイズがあるぬりえの「ぬった」「クイズせいかい」 / kind='play'（あそぶ）: すべてのぬりえの「ぬった」
+  function renderRecordPanel(kind: 'learn' | 'play') {
+    const isLearn = kind === 'learn'
+    const categories = isLearn ? recordLearnCategories : recordPlayCategories
+    const activeId = isLearn ? recordLearnCategoryId : recordPlayCategoryId
+    const setActiveId = isLearn ? setRecordLearnCategoryId : setRecordPlayCategoryId
+    const active = categories.find((category) => category.id === activeId) ?? categories[0] ?? null
+    if (!active) {
+      return (
+        <p className="emptyInline">
+          {isLearn ? 'クイズにできるぬりえがまだありません。' : 'ぬりえがまだありません。'}
+        </p>
+      )
+    }
+    const total = categories.reduce((sum, category) => sum + category.rows.length, 0)
+    const savedTotal = categories.reduce((sum, category) => sum + category.savedCount, 0)
+    const learnedTotal = categories.reduce((sum, category) => sum + category.learnedCount, 0)
+    return (
+      <div className="recordPanel" role="tabpanel">
+        <p className="recordOverall">
+          ぜんぶで <b>{total}こ</b>のうち、
+          {isLearn ? <>クイズせいかい <b>{learnedTotal}こ（{recordPercent(learnedTotal, total)}%）</b>、</> : null}
+          ぬった <b>{savedTotal}こ（{recordPercent(savedTotal, total)}%）</b>
+        </p>
+        <div className="galleryCategoryButtons recordCategoryButtons" role="group" aria-label="カテゴリーを選ぶ">
+          {categories.map((category) => (
+            <button
+              className={`galleryCategoryButton recordCategoryButton ${active.id === category.id ? 'activeGalleryCategory' : ''}`}
+              type="button"
+              key={category.id}
+              onClick={() => setActiveId(category.id)}
+            >
+              <span>{category.title}</span>
+              <small>{isLearn ? category.learnedCount : category.savedCount}/{category.rows.length}</small>
+            </button>
+          ))}
+        </div>
+        <section className="recordCategory" aria-label={`${active.title}の一覧`}>
+          <div className="recordCategoryHead">
+            <h2>{active.title}</h2>
+            <div className="recordStats">
+              {isLearn ? renderRecordStat('クイズ せいかい', active.learnedCount, active.rows.length, 'learned') : null}
+              {renderRecordStat('ぬった', active.savedCount, active.rows.length, 'saved')}
+            </div>
+          </div>
+          <div className="recordTableWrap">
+            <table className="recordTable">
+              <thead>
+                <tr>
+                  <th scope="col">ぬりえ</th>
+                  <th scope="col">ぬった</th>
+                  {isLearn ? <th scope="col">クイズ<br />せいかい</th> : null}
+                </tr>
+              </thead>
+              <tbody>
+                {active.rows.map((row) => (
+                  <tr key={row.id}>
+                    <th scope="row">
+                      <button className="recordTitleButton" type="button" title="このぬりえをひらく" onClick={() => openIllustrationFromRecord(row.id, { quiz: isLearn })}>
+                        {row.title}
+                      </button>
+                    </th>
+                    <td className="recordCheckCell">{renderRecordCheck(row.saved, 'saved', 'ぬった')}</td>
+                    {isLearn ? <td className="recordCheckCell">{renderRecordCheck(row.learned, 'learned', 'クイズせいかい')}</td> : null}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   const undoDisabled = Boolean(selected && !selectedDef?.raster && (state.undoByIllustration[selected]?.length ?? 0) === 0)
   const redoDisabled = Boolean(selected && !selectedDef?.raster && (state.redoByIllustration[selected]?.length ?? 0) === 0)
   const activeTopPage = selected
@@ -2455,6 +2643,8 @@ function App() {
           ? 'gallery'
         : showSavedPage
           ? 'saved'
+          : showRecordPage
+            ? 'record'
           : showSpreadPage
             ? 'spread'
             : showCreatePage
@@ -2769,8 +2959,8 @@ function App() {
           </footer>
         </>
       ) : (
-        <main ref={homeScrollRef} className={`home ${selectedCategory ? 'categoryPage' : showSavedPage ? 'savedPage' : showGalleryPage ? 'galleryPage' : showSpreadPage ? 'spreadPage' : showCreatePage ? 'createPage' : showQuizCatalog ? 'quizCatalogPage' : showPlayCatalog ? 'playCatalogPage' : 'homePage'}`}>
-          {!selectedCategory && !showQuizCatalog && !showPlayCatalog && !showCreatePage && !showSpreadPage && !showGalleryPage && !showSavedPage ? (
+        <main ref={homeScrollRef} className={`home ${selectedCategory ? 'categoryPage' : showSavedPage ? 'savedPage' : showRecordPage ? 'recordPage' : showGalleryPage ? 'galleryPage' : showSpreadPage ? 'spreadPage' : showCreatePage ? 'createPage' : showQuizCatalog ? 'quizCatalogPage' : showPlayCatalog ? 'playCatalogPage' : 'homePage'}`}>
+          {!selectedCategory && !showQuizCatalog && !showPlayCatalog && !showCreatePage && !showSpreadPage && !showGalleryPage && !showSavedPage && !showRecordPage ? (
             <section className="homeHero" aria-labelledby="home-hero-copy">
               <div className="heroText">
                 <p className="heroCatch">
@@ -3148,6 +3338,36 @@ function App() {
               ) : (
                 <div className="lockedPanel">
                   <p>マイギャラリーを使うにはログインしてください。</p>
+                  <button className="btn loginTopButton" type="button" onClick={() => setAuthOpen(true)}>ログイン</button>
+                </div>
+              )}
+            </section>
+          ) : showRecordPage ? (
+            <section className="toolPage recordToolPage" aria-labelledby="home-title">
+              <div className="toolIntro toolIntroWithAction">
+                <div>
+                  <h1 id="home-title">{RECORD_PAGE_TITLE}</h1>
+                  <p>ぬりえの名前をぜんぶならべて、ぬったもの（マイギャラリーに入っているもの）と、クイズにせいかいしたものをチェックできます。</p>
+                </div>
+                <button className="btn savedPageCloseButton" type="button" onClick={closeRecordPage}>
+                  もどる
+                </button>
+              </div>
+              {authUser ? (
+                <>
+                  <div className="recordTabs" role="tablist" aria-label="表示するもの">
+                    <button className={`recordTab ${recordTab === 'learn' ? 'activeRecordTab' : ''}`} type="button" role="tab" aria-selected={recordTab === 'learn'} onClick={() => setRecordTab('learn')}>
+                      まなぶ（クイズ）
+                    </button>
+                    <button className={`recordTab ${recordTab === 'play' ? 'activeRecordTab' : ''}`} type="button" role="tab" aria-selected={recordTab === 'play'} onClick={() => setRecordTab('play')}>
+                      あそぶ（ぬりえ）
+                    </button>
+                  </div>
+                  {renderRecordPanel(recordTab)}
+                </>
+              ) : (
+                <div className="lockedPanel">
+                  <p>{RECORD_PAGE_TITLE}を使うにはログインしてください。</p>
                   <button className="btn loginTopButton" type="button" onClick={() => setAuthOpen(true)}>ログイン</button>
                 </div>
               )}
@@ -4035,40 +4255,18 @@ function App() {
                   {quizCategoryProgress.length ? (
                     <div className="quizProgressList">
                       {quizCategoryProgress.map((progress) => (
-                        <details className="quizProgressItem" key={progress.category.id}>
-                          <summary>
-                            <span>{progress.category.title}</span>
-                            <strong>{progress.rate}%</strong>
-                          </summary>
-                          <p>
-                            {progress.totalCount}このうち、{progress.learned.length}こ覚えました。
-                          </p>
-                          {progress.learned.length ? (
-                            <div className="learnedMiniGrid">
-                              {progress.learned.map((it) => (
-                                <button
-                                  className="learnedMiniCard"
-                                  type="button"
-                                  key={it.id}
-                                  onClick={() => {
-                                    setAuthOpen(false)
-                                    chooseIllustration(it.id)
-                                  }}
-                                >
-                                  <IllustrationThumb illustration={it} />
-                                  <span>{it.title}</span>
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <p>成功したぬりえはまだありません。</p>
-                          )}
-                        </details>
+                        <div className="quizProgressItem quizProgressRow" key={progress.category.id}>
+                          <span>{progress.category.title}</span>
+                          <strong>{progress.rate}%</strong>
+                        </div>
                       ))}
                     </div>
                   ) : (
                     <p>クイズモードに挑戦すると、ここに達成率が表示されます。</p>
                   )}
+                  <button className="btn accountRecordButton" type="button" onClick={() => openRecordPage({ rememberReturn: true })}>
+                    {RECORD_PAGE_TITLE}を見る
+                  </button>
                 </section>
               ) : null}
               {(authMode === 'signin' || authMode === 'signup') ? (
@@ -4872,6 +5070,36 @@ async function extractQuizSwatchesFromImage(referenceImage: string): Promise<Pal
   } catch {
     return LEARNING_QUIZ_FALLBACK_SWATCHES
   }
+}
+
+function recordPercent(count: number, total: number) {
+  return total > 0 ? Math.round((count / total) * 100) : 0
+}
+
+// カテゴリーごとに、ぬりえのタイトルと「ぬった（マイギャラリーに保存ずみ）」「クイズせいかい」の一覧を作る
+function buildRecordCategories(
+  categories: IllustrationCategory[],
+  include: (illustrationId: string) => boolean,
+  illustrationById: Map<string, IllustrationDef>,
+  savedIds: Set<string>,
+  learnedIds: Set<string>,
+): RecordCategory[] {
+  return categories
+    .map((category) => {
+      const rows = category.illustrationIds
+        .filter(include)
+        .map((id) => illustrationById.get(id))
+        .filter((it): it is IllustrationDef => Boolean(it))
+        .map((it) => ({ id: it.id, title: it.title, saved: savedIds.has(it.id), learned: learnedIds.has(it.id) }))
+      return {
+        id: category.id,
+        title: category.title,
+        rows,
+        savedCount: rows.filter((row) => row.saved).length,
+        learnedCount: rows.filter((row) => row.learned).length,
+      }
+    })
+    .filter((category) => category.rows.length > 0)
 }
 
 function mergeLibraryLineartsIntoCategories(categories: IllustrationCategory[], linearts: LibraryLineArt[]) {

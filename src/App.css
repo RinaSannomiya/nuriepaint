@@ -6783,3 +6783,283 @@ input[type="checkbox"]:checked::after {
   font-size: 28px;
   opacity: 1;
 }
+
+/* ===== ぬりえずかん（クイズ・ぬったの一覧ページ。名前は App.tsx の RECORD_PAGE_TITLE） ===== */
+.recordToolPage .toolIntro h1 {
+  color: var(--accent);
+}
+
+.recordTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.recordTabs .recordTab {
+  min-height: 46px;
+  border: 0;
+  border-radius: 999px;
+  background: #f6fafc;
+  color: var(--ink);
+  padding: 10px 24px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.recordTabs .recordTab.activeRecordTab {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.recordOverall {
+  margin: 0 0 18px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.recordOverall b {
+  font-weight: 700;
+}
+
+.galleryCategoryButtons.recordCategoryButtons {
+  margin-bottom: 22px;
+}
+
+.galleryCategoryButton.recordCategoryButton small {
+  padding: 0 9px;
+}
+
+.recordCategory {
+  border-radius: 30px;
+  background: #f6fafc;
+  padding: 24px 26px 20px;
+}
+
+.recordCategoryHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin-bottom: 18px;
+}
+
+.recordCategoryHead h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.recordStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 32px;
+}
+
+.recordStat {
+  display: grid;
+  gap: 4px;
+  min-width: 190px;
+}
+
+.recordStatLabel {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.recordStatPercent {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.recordStatPercent small {
+  margin-left: 2px;
+  font-size: 16px;
+}
+
+.recordStatSaved .recordStatPercent {
+  color: var(--accent);
+}
+
+.recordStatLearned .recordStatPercent {
+  color: var(--accent-green);
+}
+
+.recordStatCount {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.recordBar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(66, 77, 97, 0.1);
+  overflow: hidden;
+}
+
+.recordBar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.recordStatSaved .recordBar span {
+  background: var(--accent);
+}
+
+.recordStatLearned .recordBar span {
+  background: var(--accent-green);
+}
+
+.recordTableWrap {
+  border-radius: 20px;
+  background: #fff;
+  padding: 4px 16px 8px;
+  overflow-x: auto;
+}
+
+.recordTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.recordTable th,
+.recordTable td {
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.recordTable tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.recordTable thead th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.recordTable thead th:first-child,
+.recordTable tbody th {
+  text-align: left;
+}
+
+.recordTable thead th:not(:first-child),
+.recordTable td {
+  width: 104px;
+  text-align: center;
+}
+
+.recordTable tbody th {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.recordTitleButton {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recordTitleButton:hover {
+  color: var(--accent-blue-dark);
+  text-decoration: underline;
+}
+
+/* .learnedBadge は「カードの右上に重ねる」指定（position: absolute）なので、表のセルの中では上書きする */
+.recordCheckCell .learnedBadge {
+  position: static;
+  z-index: auto;
+  width: 28px;
+  height: 28px;
+  margin: 0 auto;
+}
+
+.recordCheckEmpty {
+  display: inline-block;
+  height: 28px;
+  color: rgba(66, 77, 97, 0.25);
+  font-weight: 700;
+  line-height: 28px;
+}
+
+/* アカウント画面: クイズ成績の要約と、一覧ページへのボタン */
+.quizProgressItem.quizProgressRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.accountQuizProgress .btn.accountRecordButton {
+  justify-self: start;
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.accountQuizProgress .btn.accountRecordButton:hover {
+  background: var(--accent-blue-dark);
+}
+
+@media (max-width: 920px) {
+  .recordTabs .recordTab {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .recordCategory {
+    border-radius: 24px;
+    padding: 18px 12px 12px;
+  }
+
+  .recordCategoryHead {
+    display: grid;
+    gap: 12px;
+  }
+
+  .recordStats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .recordTableWrap {
+    padding: 2px 8px 6px;
+  }
+
+  .recordTable {
+    font-size: 14px;
+  }
+
+  .recordTable thead th:not(:first-child),
+  .recordTable td {
+    width: 72px;
+  }
+
+  .recordStat {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+}
