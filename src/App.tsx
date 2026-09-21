@@ -28,6 +28,7 @@ import { SIGNAL_FLAG_QUIZ_DATA } from './illustrations/signalFlagQuizData'
 import { FLAG_DIFFICULTY_DATA } from './illustrations/flagDifficultyData'
 import { ILLUSTRATION_TAGS, TAG_FACETS } from './illustrations/illustrationTags'
 import { RasterLineArt, type RasterPaintCommand } from './illustrations/svgs/RasterLineArt'
+import { generateDefaultName } from './lib/defaultName'
 
 // アカウント画面から開く、クイズの正解／ぬった（マイギャラリーに保存ずみ）を一覧するページの名前。名前を変えるときはここだけ直す。
 const RECORD_PAGE_TITLE = 'ぬりえの記録'
@@ -366,6 +367,9 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(true)
   const [authName, setAuthName] = useState('')
+  // アカウント作成中に名前が空のままのとき、名前欄の下に出すメッセージ
+  const [authNameError, setAuthNameError] = useState('')
+  const authNameInputRef = useRef<HTMLInputElement | null>(null)
   const [authProfile, setAuthProfile] = useState<UserProfile | null>(null)
   const [accountProfileEditing, setAccountProfileEditing] = useState(false)
   // ポップアップの枠外クリックで閉じる用: 枠外で「押し始めた」ときだけ閉じる（入力欄の文字選択ドラッグが枠外で終わっても閉じないように）
@@ -1562,13 +1566,22 @@ function App() {
       await resendVerificationEmail()
       return
     }
+    if (authMode === 'signupProfile' || (authMode === 'profile' && accountProfileEditing)) {
+      if (!requireAuthName()) return
+    }
     setStatus('処理中...')
     if (authMode === 'profile' || authMode === 'signupProfile') {
       const isSignupProfile = authMode === 'signupProfile'
       const wasEditingProfile = accountProfileEditing
-      await saveProfile()
+      const saved = await saveProfile()
+      if (isSignupProfile && !saved) {
+        setAuthNameError('保存できませんでした。もう一度お試しください。')
+        setStatus('')
+        return
+      }
       await refreshMe()
       if (isSignupProfile) {
+        setAuthNameError('')
         setAuthMode('signupComplete')
         setAccountProfileEditing(false)
         setStatus('')
@@ -1595,7 +1608,7 @@ function App() {
     const endpoint = authMode === 'signup' ? '/api/auth/sign-up/email' : '/api/auth/sign-in/email'
     const payload =
       authMode === 'signup'
-        ? { name: authName || authEmail.split('@')[0], email: authEmail, password: authPassword }
+        ? { name: authName.trim() || generateDefaultName(), email: authEmail, password: authPassword }
         : { email: authEmail, password: authPassword }
     const res = await fetch(endpoint, {
       method: 'POST',
@@ -1672,10 +1685,11 @@ function App() {
       credentials: 'include',
       body: form,
     })
-    if (!res.ok || !isJsonResponse(res)) return
+    if (!res.ok || !isJsonResponse(res)) return false
     const data = (await res.json()) as { profile: UserProfile | null }
     setAuthProfile(data.profile)
     if (authMode === 'profile') setAccountProfileEditing(false)
+    return true
   }
 
   async function signOut() {
@@ -2485,6 +2499,7 @@ function App() {
     if (!authUser) return
     setAuthMode('profile')
     setAuthName(authUser.name ?? '')
+    setAuthNameError('')
     setAuthMotifId(authProfile?.motifId ?? authMotifId)
     setAuthIconColor(authProfile?.iconColor ?? authIconColor)
     setAuthIconEyedropper(false)
@@ -2524,6 +2539,44 @@ function App() {
     setAuthOpen(true)
   }
 
+  // 名前が空（空白だけを含む）なら、名前欄の下にメッセージを出して false を返す
+  function requireAuthName(): boolean {
+    if (authName.trim()) {
+      setAuthNameError('')
+      return true
+    }
+    setAuthNameError('アカウント名を入力してください。')
+    authNameInputRef.current?.focus()
+    return false
+  }
+
+  // アカウント作成画面（メール確認後〜プロフィール登録）は、アカウント名を決めるまで閉じられない。
+  // ×ボタン・枠外クリックのどちらもここを通る。（アプリ自体を閉じた場合は、サーバー側のデフォルト名になる）
+  async function closeAuthPanel() {
+    if (authMode === 'signupVerified') {
+      await startSignupProfile({ requireName: true })
+      return
+    }
+    if (authMode === 'signupProfile') {
+      if (!requireAuthName()) return
+      // 名前が入っているなら、保存してから完了画面へ進む
+      setStatus('処理中...')
+      const saved = await saveProfile()
+      if (!saved) {
+        setAuthNameError('保存できませんでした。もう一度お試しください。')
+        setStatus('')
+        return
+      }
+      await refreshMe()
+      setAuthNameError('')
+      setAuthMode('signupComplete')
+      setAccountProfileEditing(false)
+      setStatus('')
+      return
+    }
+    setAuthOpen(false)
+  }
+
   function startAfterSignup() {
     setAuthOpen(false)
     setAuthMode('profile')
@@ -2532,7 +2585,7 @@ function App() {
     openPlayCatalog()
   }
 
-  async function startSignupProfile() {
+  async function startSignupProfile(options?: { requireName?: boolean }) {
     // 認証メールのリンクを開くとログイン状態になっている。そうなっていなければログイン画面へ。
     const me = await refreshMe()
     if (!me) {
@@ -2543,6 +2596,7 @@ function App() {
     setAuthMode('signupProfile')
     setAccountProfileEditing(true)
     setAuthName('')
+    setAuthNameError(options?.requireName ? 'アカウント名を入力してください。' : '')
     setStatus('')
   }
 
@@ -3991,7 +4045,7 @@ function App() {
           role="dialog"
           aria-modal="true"
           aria-label="アカウント"
-          {...backdropCloseProps(() => setAuthOpen(false))}
+          {...backdropCloseProps(() => void closeAuthPanel())}
         >
           <form className="authPanel" onSubmit={submitAuth}>
             <div className="modalHead">
@@ -4020,7 +4074,7 @@ function App() {
                         : 'ログイン'}
                 </div>
               </div>
-              <button className="btn iconButton quizResultCloseButton" type="button" onClick={() => setAuthOpen(false)} aria-label="閉じる" title="閉じる">
+              <button className="btn iconButton quizResultCloseButton" type="button" onClick={() => void closeAuthPanel()} aria-label="閉じる" title="閉じる">
                 <span aria-hidden="true" />
               </button>
             </div>
@@ -4062,7 +4116,7 @@ function App() {
                     メールアドレスの確認が<br className="spBreak" />完了しました。
                   </p>
                   <p>名前とアイコンを設定しましょう。</p>
-                  <button className="btn primaryAction signupCompleteButton" type="button" onClick={startSignupProfile}>
+                  <button className="btn primaryAction signupCompleteButton" type="button" onClick={() => void startSignupProfile()}>
                     プロフィールを設定する
                   </button>
                 </section>
@@ -4365,9 +4419,19 @@ function App() {
               ) : null}
               {(authMode === 'profile' && accountProfileEditing) || authMode === 'signupProfile' ? (
                 <>
-                  <label className="field accountNameField">
+                  <label className={`field accountNameField${authNameError ? ' hasError' : ''}`}>
                     <span>なまえ</span>
-                    <input value={authName} onChange={(ev) => setAuthName(ev.target.value)} autoComplete="name" required />
+                    <input
+                      ref={authNameInputRef}
+                      value={authName}
+                      onChange={(ev) => {
+                        setAuthName(ev.target.value)
+                        setAuthNameError('')
+                      }}
+                      autoComplete="name"
+                      aria-invalid={authNameError ? true : undefined}
+                    />
+                    {authNameError ? <span className="accountNameError" role="alert">{authNameError}</span> : null}
                   </label>
                   <div className="profileCreator" aria-label="プロフィールアイコン">
                     <div className="profilePreviewWrap">

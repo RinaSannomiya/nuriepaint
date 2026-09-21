@@ -7324,3 +7324,15 @@ input[type="checkbox"]:checked::after {
     max-width: none;
   }
 }
+
+/* アカウント作成中に名前が空のときのメッセージ（.field input より詳細度を上げて枠線を赤く） */
+.accountNameField.hasError input {
+  border-color: var(--accent);
+}
+
+.accountNameField .accountNameError {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+}

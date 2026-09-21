@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { withCloudflare } from 'better-auth-cloudflare'
+import { safeDefaultName } from './lib/defaultName'
 import { existingAccountEmail, passwordResetEmail, sendMail, verificationEmail } from './mail'
 
 export type Env = {
@@ -91,6 +92,17 @@ export function createAuth(env: Env, request: Request) {
             }
             const mail = verificationEmail(link.toString())
             await sendMail(env, { to: user.email, ...mail })
+          },
+        },
+        databaseHooks: {
+          user: {
+            create: {
+              // 名前が空・メールアドレスの「@より前」のままで登録されても、デフォルトのなまえに置き換える
+              // （画面を経由しない直接のAPI呼び出しでも、メールアドレスの一部が公開されないようにする）
+              before: async (user) => ({
+                data: { ...user, name: safeDefaultName(user.name, user.email) },
+              }),
+            },
           },
         },
         user: {

@@ -1,5 +1,6 @@
 import { verifyPassword } from 'better-auth/crypto'
 import { createAuth, type Env } from './auth'
+import { generateDefaultName } from './lib/defaultName'
 import { LINEART_CATEGORY_IDS } from './illustrations/categoryIds'
 
 type SessionUser = {
@@ -207,7 +208,7 @@ export default {
       }
       const motifId = PROFILE_MOTIF_IDS.has(String(body.motifId)) ? String(body.motifId) : 'boy'
       const iconColor = isHexColor(String(body.iconColor || '')) ? String(body.iconColor).toLowerCase() : '#ef6950'
-      const name = String(body.name || user.name || user.email.split('@')[0]).trim().slice(0, 64)
+      const name = (String(body.name || '').trim() || user.name || generateDefaultName()).slice(0, 64)
       const now = new Date().toISOString()
       let iconObjectKey: string | null = null
       let iconContentType: string | null = null
