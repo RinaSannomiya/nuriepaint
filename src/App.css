@@ -6527,7 +6527,7 @@ input[type="checkbox"]:checked::after {
 
 /* チャレンジ中の左カラム（イラスト一覧の代わりに進み具合を出す） */
 .sidebar.challengeSidebar {
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .challengeSummary {
@@ -6586,15 +6586,8 @@ input[type="checkbox"]:checked::after {
   transition: width 240ms ease;
 }
 
-.challengeListTitle {
-  padding: 16px 16px 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
 .challengeSidebar .cards {
-  padding-top: 6px;
+  padding-top: 14px;
   align-content: start; /* 数が少ないうちは上に詰める（縦に引き伸ばさない） */
 }
 
@@ -6605,13 +6598,6 @@ input[type="checkbox"]:checked::after {
 .cardBtn.challengeAnsweredCard:hover {
   transform: none;
   background: transparent;
-}
-
-.challengeEmpty {
-  padding: 6px 8px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.7;
 }
 
 .challengeMissBadge {
@@ -6650,6 +6636,10 @@ input[type="checkbox"]:checked::after {
 .challengeResultPanel .quizScoreBadge.missedQuiz,
 .challengeResultPanel .quizScoreBadge.longScore {
   font-size: 22px;
+}
+
+.challengeResultPanel .quizResultStats.challengeStatsTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .challengeResultActions {

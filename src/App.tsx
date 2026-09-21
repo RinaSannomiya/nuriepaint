@@ -313,6 +313,8 @@ function App() {
   const [authName, setAuthName] = useState('')
   const [authProfile, setAuthProfile] = useState<UserProfile | null>(null)
   const [accountProfileEditing, setAccountProfileEditing] = useState(false)
+  // アカウント画面の枠外クリックで閉じる用: 枠外で「押し始めた」ときだけ閉じる（入力欄の文字選択ドラッグが枠外で終わっても閉じないように）
+  const authBackdropPressRef = useRef(false)
   const [accountEmailEditing, setAccountEmailEditing] = useState(false)
   const [accountEmailValue, setAccountEmailValue] = useState('')
   const [accountEmailMessage, setAccountEmailMessage] = useState('')
@@ -2069,7 +2071,10 @@ function App() {
               </div>
             </div>
             <div className="quizResultBody">
-              <p>ここまでの結果はなくなります。問題は同じ出題数で新しく選びなおします。</p>
+              <p>
+                ここまでの結果はなくなります。<br />
+                問題は同じ出題数で新しく選びなおします。
+              </p>
               <div className="challengeResultActions">
                 <button className="btn primaryAction" type="button" onClick={restartChallenge}>
                   やりなおす
@@ -2086,7 +2091,6 @@ function App() {
     if (!challenge || challenge.phase === 'answering') return null
     const total = challenge.ids.length
     const correct = challenge.results.filter(Boolean).length
-    const streak = challengeStreak(challenge.results)
     if (challenge.phase === 'answered') {
       const lastCorrect = challenge.results[challenge.results.length - 1] === true
       const isLast = challenge.index + 1 >= total
@@ -2100,21 +2104,11 @@ function App() {
             </div>
             <div className="quizResultBody">
               <div className={`quizScoreBadge ${lastCorrect ? 'passedQuiz' : 'missedQuiz'}`}>
-                {lastCorrect ? '正解！' : 'ざんねん'}
+                {lastCorrect ? '正解！' : '不正解'}
               </div>
-              <p>
-                {lastCorrect
-                  ? (streak >= 2 ? `${streak}問れんぞく正解！すごい！` : 'よくできました！')
-                  : (
-                    <>
-                      見本と違う色、またはまだ塗れていない場所がありました。（{challenge.lastScore}%）<br />
-                      れんぞく正解はここまで。つぎもがんばろう！
-                    </>
-                  )}
-              </p>
-              <div className="quizResultStats">
+              <p>{lastCorrect ? 'よくできました！' : 'ざんねん！'}</p>
+              <div className="quizResultStats challengeStatsTwo">
                 <span>正解 {correct}問</span>
-                <span>連続 {streak}問</span>
                 <span>のこり {total - challenge.index - 1}問</span>
               </div>
               <button className="btn primaryAction quizNextButton" type="button" onClick={nextChallengeQuestion}>
@@ -2139,10 +2133,9 @@ function App() {
               {correct}/{total}
             </div>
             <p>{perfect ? 'ぜんぶ正解！パーフェクト！' : `${total}問中 ${correct}問 正解でした。`}</p>
-            <div className="quizResultStats">
+            <div className="quizResultStats challengeStatsTwo">
               <span>正解 {correct}問</span>
               <span>まちがい {total - correct}問</span>
-              <span>最高れんぞく {challengeBestStreak(challenge.results)}問</span>
             </div>
             <div className="challengeResultActions">
               <button className="btn primaryAction quizNextButton" type="button" onClick={restartChallenge}>
@@ -3547,7 +3540,20 @@ function App() {
         </div>
       ) : null}
       {authOpen ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="アカウント">
+        <div
+          className="modalOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="アカウント"
+          onMouseDown={(ev) => {
+            authBackdropPressRef.current = ev.target === ev.currentTarget
+          }}
+          onClick={(ev) => {
+            const pressedOnBackdrop = authBackdropPressRef.current
+            authBackdropPressRef.current = false
+            if (pressedOnBackdrop && ev.target === ev.currentTarget) setAuthOpen(false)
+          }}
+        >
           <form className="authPanel" onSubmit={submitAuth}>
             <div className="modalHead">
               <div>
@@ -4690,23 +4696,6 @@ function shuffleArray<T>(items: T[]): T[] {
     ;[result[index], result[swapIndex]] = [result[swapIndex], result[index]]
   }
   return result
-}
-
-// いま何問つづけて正解しているか（最後の問題から数える）
-function challengeStreak(results: boolean[]) {
-  let streak = 0
-  for (let index = results.length - 1; index >= 0 && results[index]; index -= 1) streak += 1
-  return streak
-}
-
-function challengeBestStreak(results: boolean[]) {
-  let best = 0
-  let current = 0
-  for (const passed of results) {
-    current = passed ? current + 1 : 0
-    best = Math.max(best, current)
-  }
-  return best
 }
 
 function shuffleQuizSwatches(swatches: PaletteSwatch[], seedText: string) {

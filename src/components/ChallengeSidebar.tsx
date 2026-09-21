@@ -44,7 +44,6 @@ export function ChallengeSidebar(props: {
           <i style={{ width: `${props.total ? (done / props.total) * 100 : 0}%` }} />
         </div>
       </div>
-      <div className="challengeListTitle">答え合わせがおわったぬりえ</div>
       <div className="cards" role="list">
         {items.length ? (
           items.map((item) => {
@@ -73,9 +72,7 @@ export function ChallengeSidebar(props: {
               </div>
             )
           })
-        ) : (
-          <div className="challengeEmpty">答え合わせをしたぬりえの見本が、ここにならびます。</div>
-        )}
+        ) : null}
       </div>
     </div>
   )
