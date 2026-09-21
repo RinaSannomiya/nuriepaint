@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { ILLUSTRATIONS, type IllustrationDef, type IllustrationId } from '../illustrations/illustrations'
 import { IllustrationThumb } from './IllustrationThumb'
+import { CheckBadge, type CheckKind } from './CheckBadge'
 
-export function Sidebar(props: { selected: IllustrationId | null; illustrations?: IllustrationDef[]; learnedIds?: Set<string>; onSelect: (id: IllustrationId) => void; onBackToCategories?: () => void; scrollToTopToken?: number }) {
+export function Sidebar(props: { selected: IllustrationId | null; illustrations?: IllustrationDef[]; checkedIds?: Set<string>; checkKind?: CheckKind; onSelect: (id: IllustrationId) => void; onBackToCategories?: () => void; scrollToTopToken?: number }) {
   const illustrations = props.illustrations ?? ILLUSTRATIONS
   const cardsRef = useRef<HTMLDivElement | null>(null)
 
@@ -40,7 +41,7 @@ export function Sidebar(props: { selected: IllustrationId | null; illustrations?
               role="listitem"
               style={{ ['--stagger' as never]: `${Math.min(idx, 12)}` }}
             >
-              {props.learnedIds?.has(it.id) ? <span className="learnedBadge sidebarLearnedBadge" aria-label="覚えた">✓</span> : null}
+              {props.checkedIds?.has(it.id) ? <CheckBadge kind={props.checkKind ?? 'learned'} className="sidebarLearnedBadge" /> : null}
               <div className="cardThumb" aria-hidden="true">
                 <div className="thumbPaper">
                   <IllustrationThumb illustration={it} />

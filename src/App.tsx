@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import { DEFAULT_SWATCHES, Palette } from './components/Palette'
 import { IllustrationThumb } from './components/IllustrationThumb'
 import { Sidebar } from './components/Sidebar'
+import { CheckBadge } from './components/CheckBadge'
 import { isWhiteColor } from './lib/color'
 import { Stage } from './components/Stage'
 import { ILLUSTRATIONS, ILLUSTRATION_CATEGORIES, type IllustrationCategory, type IllustrationDef } from './illustrations/illustrations'
@@ -520,6 +521,11 @@ function App() {
   }, [selected, selectedQuiz])
   const activeSwatches = quizMode && selectedQuizSwatches ? selectedQuizSwatches : customSwatches
   const learnedQuizIds = useMemo(() => new Set(quizAttempts.filter((attempt) => attempt.passed).map((attempt) => attempt.illustrationId)), [quizAttempts])
+  // マイギャラリーに作品を保存しているぬりえ
+  const savedIllustrationIds = useMemo(() => new Set(savedColorings.map((item) => item.illustrationId)), [savedColorings])
+  // クイズモードがオンのときは「クイズに正解した（緑）」、オフのときは「マイギャラリーに保存した（コーラルレッド）」チェックを出す
+  const checkKind = quizSelectionArmed ? 'learned' : 'saved'
+  const checkedIds = quizSelectionArmed ? learnedQuizIds : savedIllustrationIds
   const quizCategoryProgress = useMemo<QuizCategoryProgress[]>(() => {
     const attemptsByCategory = new Map<string, QuizAttempt[]>()
     for (const attempt of quizAttempts) {
@@ -728,6 +734,21 @@ function App() {
       cancelled = true
     }
   }, [authUser?.id])
+
+  // 一覧やぬりえ画面でチェックマークを出すため、保存済みの作品を（ログイン画面などを出さずに）読み込んでおく
+  useEffect(() => {
+    if (!authUser || !(selectedCategoryId || showQuizCatalog)) return
+    let cancelled = false
+    void (async () => {
+      const res = await fetch('/api/colorings', { credentials: 'include' }).catch(() => null)
+      if (!res || !res.ok || !isJsonResponse(res)) return
+      const data = (await res.json()) as { colorings: SavedColoring[] }
+      if (!cancelled) setSavedColorings(data.colorings)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [authUser, selectedCategoryId, showQuizCatalog])
 
   useEffect(() => {
     if (!authUser) return
@@ -1166,7 +1187,7 @@ function App() {
     const pool = challengePoolIds
     if (!pool.length) return
     const count = challengeCount === 'all' ? pool.length : Math.min(challengeCount, pool.length)
-    const ids = shuffleArray(pool).slice(0, count)
+    const ids = pickChallengeIds(pool, count, savedIllustrationIds)
     challengeBusyRef.current = false
     challengeArmedRef.current = quizSelectionArmed
     setChallengeQuitOpen(false)
@@ -1189,7 +1210,7 @@ function App() {
 
   function restartChallenge() {
     if (!challenge) return
-    const ids = shuffleArray(challenge.poolIds).slice(0, challenge.ids.length)
+    const ids = pickChallengeIds(challenge.poolIds, challenge.ids.length, savedIllustrationIds)
     challengeBusyRef.current = false
     setChallengeState({ ...challenge, ids, index: 0, results: [], lastScore: 0, phase: 'answering' })
     chooseIllustration(ids[0], { forceQuiz: true, challenge: true, scrollSidebarToTop: false })
@@ -1430,7 +1451,8 @@ function App() {
       return
     }
     setStatus('保存しました。')
-    if (galleryOpen) await loadGallery()
+    // 保存済みの一覧を更新する（チェックマークにも反映される）
+    await loadGallery({ openModal: false })
   }
 
   async function loadGallery(opts?: { openModal?: boolean }) {
@@ -1931,6 +1953,7 @@ function App() {
     const numericOptions = CHALLENGE_COUNT_OPTIONS.filter((n) => n < poolSize)
     const effective = challengeCount === 'all' || challengeCount >= poolSize ? poolSize : challengeCount
     const isAll = effective === poolSize
+    const savedInPool = challengePoolIds.filter((id) => savedIllustrationIds.has(id)).length
     return (
       <section className="challengeBar" aria-label="連続正解チャレンジ">
         <div className="challengeBarText">
@@ -1938,6 +1961,7 @@ function App() {
           <span>
             {selectedCategory ? `「${selectedCategory.title}」` : 'すべてのカテゴリー'}からランダムに出題！何問つづけて正解できるかな？
           </span>
+          {savedInPool > 0 ? <span>マイギャラリーに保存したぬりえ（{savedInPool}枚）を優先して出題します。</span> : null}
         </div>
         <div className="challengeControls">
           <div className="challengeCountPicker" role="radiogroup" aria-label="出題数">
@@ -2512,7 +2536,7 @@ function App() {
         <>
           <div className="layout">
             <aside className={`rail ${challengeRunning ? 'challengeLocked' : ''}`} inert={challengeRunning}>
-              <Sidebar selected={selected} illustrations={displayedCategoryIllustrations.length ? displayedCategoryIllustrations : undefined} learnedIds={learnedQuizIds} onSelect={(id) => chooseIllustration(id, { scrollSidebarToTop: false })} onBackToCategories={backToCategorySelection} scrollToTopToken={gallerySidebarScrollToken} />
+              <Sidebar selected={selected} illustrations={displayedCategoryIllustrations.length ? displayedCategoryIllustrations : undefined} checkedIds={checkedIds} checkKind={checkKind} onSelect={(id) => chooseIllustration(id, { scrollSidebarToTop: false })} onBackToCategories={backToCategorySelection} scrollToTopToken={gallerySidebarScrollToken} />
             </aside>
 
             <main className="main">
@@ -3200,7 +3224,7 @@ function App() {
                 libraryByIllustrationId.has(it.id) ? (
                   <div className="homeCard libraryHomeCard" key={it.id} style={{ ['--stagger' as never]: `${Math.min(idx, 12)}` }}>
                     <button className="homeCardMain" type="button" onClick={() => chooseIllustration(it.id)}>
-                      {learnedQuizIds.has(it.id) ? <span className="learnedBadge" aria-label="覚えた">✓</span> : null}
+                      {checkedIds.has(it.id) ? <CheckBadge kind={checkKind} /> : null}
                       <div className="homeThumb" aria-hidden="true">
                         <div className="thumbPaper">
                           <IllustrationThumb illustration={it} />
@@ -3226,7 +3250,7 @@ function App() {
                     onClick={() => chooseIllustration(it.id)}
                     style={{ ['--stagger' as never]: `${Math.min(idx, 12)}` }}
                   >
-                    {learnedQuizIds.has(it.id) ? <span className="learnedBadge" aria-label="覚えた">✓</span> : null}
+                    {checkedIds.has(it.id) ? <CheckBadge kind={checkKind} /> : null}
                     <div className="homeThumb" aria-hidden="true">
                       <div className="thumbPaper">
                         <IllustrationThumb illustration={it} />
@@ -4563,6 +4587,15 @@ function fillQuizSwatchesWithDummies(swatches: PaletteSwatch[], seedText: string
   // 2回目（まだ足りないとき）: 色が近すぎるものだけ除く
   addFrom((candidate) => result.some((swatch) => colorDistance(hexToRgb(candidate.hex), hexToRgb(swatch.hex)) < 64))
   return result
+}
+
+// チャレンジの出題を選ぶ。マイギャラリーに保存しているぬりえを優先し、
+// 保存数が出題数より多ければ保存しているものだけから、足りなければ残りをほかのぬりえからランダムに選ぶ。
+// 選んだあとは並びをシャッフルする（保存済みだけが前にかたまらないように）。
+function pickChallengeIds(pool: string[], count: number, savedIds: Set<string>): string[] {
+  const saved = shuffleArray(pool.filter((id) => savedIds.has(id)))
+  const others = shuffleArray(pool.filter((id) => !savedIds.has(id)))
+  return shuffleArray([...saved, ...others].slice(0, count))
 }
 
 function shuffleArray<T>(items: T[]): T[] {

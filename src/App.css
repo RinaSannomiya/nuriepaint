@@ -2556,6 +2556,19 @@ input[type="checkbox"]:checked::after {
   font-size: 20px;
 }
 
+/* チェックマークは画像（緑＝クイズ正解 / コーラルレッド＝マイギャラリー保存ずみ） */
+.learnedBadge {
+  display: block;
+}
+
+.learnedBadge img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .cardThumb {
   width: 92px;
   height: 76px;
