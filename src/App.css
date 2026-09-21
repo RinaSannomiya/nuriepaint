@@ -6995,6 +6995,29 @@ input[type="checkbox"]:checked::after {
   margin: 0 auto;
 }
 
+.recordNote {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* クイズせいかいの列は、チェックの下に「はじめて正解した日」が入るので、日づけがない行も高さをそろえる */
+.recordTable.recordTableWithDate td,
+.recordTable.recordTableWithDate tbody th {
+  height: 68px;
+}
+
+.recordCheckDate {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .recordCheckEmpty {
   display: inline-block;
   height: 28px;
@@ -7051,6 +7074,14 @@ input[type="checkbox"]:checked::after {
 
   .recordTable {
     font-size: 14px;
+  }
+
+  .recordTable.recordTableWithDate td {
+    width: 80px;
+  }
+
+  .recordCheckDate {
+    font-size: 11px;
   }
 
   .recordTable thead th:not(:first-child),

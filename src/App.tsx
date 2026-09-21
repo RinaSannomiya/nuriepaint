@@ -150,6 +150,7 @@ type RecordRow = {
   title: string
   saved: boolean
   learned: boolean
+  learnedAt: string | null
 }
 type RecordCategory = {
   id: string
@@ -567,6 +568,16 @@ function App() {
   }, [selected, selectedQuiz])
   const activeSwatches = quizMode && selectedQuizSwatches ? selectedQuizSwatches : customSwatches
   const learnedQuizIds = useMemo(() => new Set(quizAttempts.filter((attempt) => attempt.passed).map((attempt) => attempt.illustrationId)), [quizAttempts])
+  // はじめてクイズに正解した日時（合格した挑戦のうち、いちばん古いもの）。挑戦はすべて DB に残っているので、これまでの分もさかのぼって出せる
+  const firstLearnedAtById = useMemo(() => {
+    const firstAt = new Map<string, string>()
+    for (const attempt of quizAttempts) {
+      if (!attempt.passed) continue
+      const current = firstAt.get(attempt.illustrationId)
+      if (!current || new Date(attempt.createdAt).getTime() < new Date(current).getTime()) firstAt.set(attempt.illustrationId, attempt.createdAt)
+    }
+    return firstAt
+  }, [quizAttempts])
   // マイギャラリーに作品を保存しているぬりえ
   const savedIllustrationIds = useMemo(() => new Set(savedColorings.map((item) => item.illustrationId)), [savedColorings])
   // クイズモードがオンのときは「クイズに正解した（緑）」、オフのときは「マイギャラリーに保存した（コーラルレッド）」チェックを出す
@@ -599,12 +610,12 @@ function App() {
   }, [allIllustrations, learnCategories, learnedQuizIds, quizAttempts, quizConfigs])
   // 「ぬりえの記録」ページ用: カテゴリーごとに、ぬりえ全部の「ぬった（マイギャラリーに保存ずみ）」「クイズせいかい」を並べる
   const recordLearnCategories = useMemo(
-    () => buildRecordCategories(learnCategories, (id) => Boolean(quizConfigs[id]), illustrationById, savedIllustrationIds, learnedQuizIds),
-    [illustrationById, learnCategories, learnedQuizIds, quizConfigs, savedIllustrationIds],
+    () => buildRecordCategories(learnCategories, (id) => Boolean(quizConfigs[id]), illustrationById, savedIllustrationIds, learnedQuizIds, firstLearnedAtById),
+    [firstLearnedAtById, illustrationById, learnCategories, learnedQuizIds, quizConfigs, savedIllustrationIds],
   )
   const recordPlayCategories = useMemo(
-    () => buildRecordCategories(playCategories, () => true, illustrationById, savedIllustrationIds, learnedQuizIds),
-    [illustrationById, learnedQuizIds, playCategories, savedIllustrationIds],
+    () => buildRecordCategories(playCategories, () => true, illustrationById, savedIllustrationIds, learnedQuizIds, firstLearnedAtById),
+    [firstLearnedAtById, illustrationById, learnedQuizIds, playCategories, savedIllustrationIds],
   )
   const colorModeDescription = {
     rgb: 'RGBは光の三原色。液晶画面の色と同じように、赤・緑・青の光を重ねて色を作ります。',
@@ -2553,9 +2564,14 @@ function App() {
     )
   }
 
-  function renderRecordCheck(done: boolean, kind: 'saved' | 'learned', label: string) {
+  function renderRecordCheck(done: boolean, kind: 'saved' | 'learned', label: string, note?: string) {
     return done
-      ? <CheckBadge kind={kind} label={label} />
+      ? (
+        <>
+          <CheckBadge kind={kind} label={label} />
+          {note ? <span className="recordCheckDate">{note}</span> : null}
+        </>
+      )
       : <span className="recordCheckEmpty" role="img" aria-label={`${label}: まだ`}>-</span>
   }
 
@@ -2604,8 +2620,9 @@ function App() {
               {renderRecordStat('ぬった', active.savedCount, active.rows.length, 'saved')}
             </div>
           </div>
+          {isLearn ? <p className="recordNote">クイズせいかいの下の日づけは、はじめて正解した日です。</p> : null}
           <div className="recordTableWrap">
-            <table className="recordTable">
+            <table className={`recordTable ${isLearn ? 'recordTableWithDate' : ''}`}>
               <thead>
                 <tr>
                   <th scope="col">ぬりえ</th>
@@ -2622,7 +2639,7 @@ function App() {
                       </button>
                     </th>
                     <td className="recordCheckCell">{renderRecordCheck(row.saved, 'saved', 'ぬった')}</td>
-                    {isLearn ? <td className="recordCheckCell">{renderRecordCheck(row.learned, 'learned', 'クイズせいかい')}</td> : null}
+                    {isLearn ? <td className="recordCheckCell">{renderRecordCheck(row.learned, 'learned', 'クイズせいかい', row.learnedAt ? formatDateOnly(row.learnedAt) : undefined)}</td> : null}
                   </tr>
                 ))}
               </tbody>
@@ -4863,6 +4880,13 @@ function isJsonResponse(res: Response) {
   return res.headers.get('content-type')?.includes('application/json') ?? false
 }
 
+// 日づけだけ（例: 2026/9/21）
+function formatDateOnly(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
+}
+
 function formatDateDisplay(value: string) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return ''
@@ -5083,6 +5107,7 @@ function buildRecordCategories(
   illustrationById: Map<string, IllustrationDef>,
   savedIds: Set<string>,
   learnedIds: Set<string>,
+  learnedAtById: Map<string, string>,
 ): RecordCategory[] {
   return categories
     .map((category) => {
@@ -5090,7 +5115,7 @@ function buildRecordCategories(
         .filter(include)
         .map((id) => illustrationById.get(id))
         .filter((it): it is IllustrationDef => Boolean(it))
-        .map((it) => ({ id: it.id, title: it.title, saved: savedIds.has(it.id), learned: learnedIds.has(it.id) }))
+        .map((it) => ({ id: it.id, title: it.title, saved: savedIds.has(it.id), learned: learnedIds.has(it.id), learnedAt: learnedAtById.get(it.id) ?? null }))
       return {
         id: category.id,
         title: category.title,
