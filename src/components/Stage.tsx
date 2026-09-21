@@ -92,6 +92,11 @@ export function Stage(props: {
               クイズモードへ
             </button>
           ) : null}
+          {props.quizMode && !props.onQuitChallenge ? (
+            <button className="btn quizModeToggleButton quizExitButton" type="button" onClick={props.onExitQuiz}>
+              ぬりえモードへ
+            </button>
+          ) : null}
           <div className="tabletStageQuickActions">
             <button className="btn" type="button" onClick={props.onOpenSaved}>
               マイギャラリー
@@ -117,11 +122,7 @@ export function Stage(props: {
                 <button className="btn challengeQuitButton" type="button" onClick={props.onQuitChallenge}>
                   やめる
                 </button>
-              ) : (
-                <button className="btn quizModeToggleButton quizExitButton" type="button" onClick={props.onExitQuiz}>
-                  ぬりえモードへ
-                </button>
-              )}
+              ) : null}
               <button className="btn quizCompleteButton" type="button" onClick={props.onCompleteQuiz}>
                 完成！
               </button>
