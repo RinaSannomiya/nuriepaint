@@ -26,6 +26,7 @@ import {
 import { FLAG_QUIZ_DATA } from './illustrations/flagQuizData'
 import { SIGNAL_FLAG_QUIZ_DATA } from './illustrations/signalFlagQuizData'
 import { FLAG_DIFFICULTY_DATA } from './illustrations/flagDifficultyData'
+import { ILLUSTRATION_TAGS, TAG_FACETS } from './illustrations/illustrationTags'
 import { RasterLineArt, type RasterPaintCommand } from './illustrations/svgs/RasterLineArt'
 
 // アカウント画面から開く、クイズの正解／ぬった（マイギャラリーに保存ずみ）を一覧するページの名前。名前を変えるときはここだけ直す。
@@ -315,6 +316,9 @@ function App() {
   const [recordTab, setRecordTab] = useState<'learn' | 'play'>('learn')
   const [recordLearnCategoryId, setRecordLearnCategoryId] = useState<string | null>(null)
   const [recordPlayCategoryId, setRecordPlayCategoryId] = useState<string | null>(null)
+  // 国旗の「ちいき」など、小カテゴリーの中をしぼりこむタグ（categoryId のカテゴリーを見ているときだけ有効）
+  const [categoryTag, setCategoryTag] = useState<{ categoryId: string; tag: string } | null>(null)
+  const [recordTag, setRecordTag] = useState<{ categoryId: string; tag: string } | null>(null)
   const [color, setColor] = useState('#EF6950')
   const [paletteDraftColor, setPaletteDraftColor] = useState(DEFAULT_SWATCHES[0].hex)
   const [selectedSwatchIndex, setSelectedSwatchIndex] = useState(0)
@@ -572,12 +576,25 @@ function App() {
     return { groupId: entry.group.id, chips }
   }, [categoryReturnPage, playGroups, secretMode, selectedCategory, selectedCategoryId])
 
+  // 国旗のちいき・国際信号旗のしゅるいなど、小カテゴリーの中をしぼりこむタグ。中に2種類以上のタグがあるカテゴリーだけチップを出す
+  // （大カテゴリーの「すべて」では出さない。ユーザーが追加したぬりえにはタグがないので、しぼりこむと出なくなる）
+  const categoryTagBar = useMemo(() => {
+    if (!selectedCategory || viewingGroupAll) return null
+    const facet = TAG_FACETS[selectedCategory.id]
+    if (!facet) return null
+    const tags = facet.tags.filter((tag) => selectedCategory.illustrationIds.some((id) => ILLUSTRATION_TAGS[id] === tag.id))
+    return tags.length >= 2 ? { ariaLabel: facet.ariaLabel, tags } : null
+  }, [selectedCategory, viewingGroupAll])
+  const selectedTag = categoryTagBar && categoryTag && categoryTag.categoryId === selectedCategory?.id ? categoryTag.tag : null
+  const selectedTagLabel = selectedTag ? categoryTagBar?.tags.find((tag) => tag.id === selectedTag)?.label ?? null : null
+
   const categoryIllustrations = useMemo(() => {
     if (!selectedCategory) return []
     return selectedCategory.illustrationIds
+      .filter((id) => !selectedTag || ILLUSTRATION_TAGS[id] === selectedTag)
       .map((id) => allIllustrations.find((it) => it.id === id))
       .filter((it): it is IllustrationDef => Boolean(it))
-  }, [allIllustrations, selectedCategory])
+  }, [allIllustrations, selectedCategory, selectedTag])
   const selectedCategoryHasQuiz = useMemo(() => {
     if (viewingGroupAll) return false
     return Boolean(selectedCategory?.illustrationIds.some((id) => quizConfigs[id]))
@@ -638,8 +655,8 @@ function App() {
   // いま開いているカテゴリーから、チャレンジで出せる問題
   const challengePoolIds = useMemo(() => {
     if (!selectedCategory || viewingGroupAll) return []
-    return selectedCategory.illustrationIds.filter((id) => quizConfigs[id] && illustrationById.get(id)?.referenceImage)
-  }, [illustrationById, quizConfigs, selectedCategory, viewingGroupAll])
+    return selectedCategory.illustrationIds.filter((id) => (!selectedTag || ILLUSTRATION_TAGS[id] === selectedTag) && quizConfigs[id] && illustrationById.get(id)?.referenceImage)
+  }, [illustrationById, quizConfigs, selectedCategory, selectedTag, viewingGroupAll])
   // 難易度ごとの出題プール。プールが空の難易度（学習用のかんたん・むずかしいなど）は選べない
   const challengePools = useMemo(() => buildChallengePools(challengePoolIds), [challengePoolIds])
   const challengePoolSizes = useMemo<Record<ChallengeDifficulty, number>>(() => ({
@@ -959,6 +976,8 @@ function App() {
         : inLearn
           ? playCategories.find((it) => it.illustrationIds.includes(id))?.id ?? null
           : categoryViewIdFor(id)
+    // ちいきなどのタグは、開いたぬりえがそのタグの中にあるときだけ引き継ぐ（マイギャラリーなど別の場所から開いたときは「すべて」にもどす）
+    setCategoryTag((current) => (current && nextViewId === current.categoryId && ILLUSTRATION_TAGS[id] === current.tag ? current : null))
     if (nextViewId) {
       if (nextViewId !== selectedCategoryId && !opts?.challenge) {
         setCategoryReturnPage(showQuizCatalog ? 'learn' : 'play')
@@ -998,6 +1017,7 @@ function App() {
   function goHome() {
     setSelected(null)
     setSelectedCategoryId(null)
+    setCategoryTag(null)
     setShowPlayCatalog(false)
     setShowQuizCatalog(false)
     setShowCreatePage(false)
@@ -1022,6 +1042,7 @@ function App() {
   function chooseCategoryChip(id: string) {
     setSelected(null)
     setSelectedCategoryId(id)
+    setCategoryTag(null)
     setQuizSelectionArmed(false)
     setQuizMode(false)
     setQuizResult(null)
@@ -1031,6 +1052,7 @@ function App() {
     setCategoryReturnPage(showQuizCatalog ? 'learn' : showPlayCatalog ? 'play' : 'home')
     setSelected(null)
     setSelectedCategoryId(id)
+    setCategoryTag(null)
     setQuizSelectionArmed(showQuizCatalog && Boolean(learnCategories.find((category) => category.id === id)))
     setShowPlayCatalog(false)
     setShowQuizCatalog(false)
@@ -1058,6 +1080,7 @@ function App() {
   function backToCategorySelection() {
     setSelected(null)
     setSelectedCategoryId(null)
+    setCategoryTag(null)
     setShowCreatePage(false)
     setShowSpreadPage(false)
     setShowGalleryPage(false)
@@ -1500,7 +1523,7 @@ function App() {
         // 同じカテゴリーの中で、いまのぬりえの次にあるクイズ対象のぬりえへ直接移動する
         const nextId = category.illustrationIds
           .slice(category.illustrationIds.indexOf(selected) + 1)
-          .find((id) => Boolean(quizConfigs[id]))
+          .find((id) => Boolean(quizConfigs[id]) && (!selectedTag || ILLUSTRATION_TAGS[id] === selectedTag))
         if (nextId) {
           setSelectedCategoryId(category.id)
           chooseIllustration(nextId, { forceQuiz: true })
@@ -2278,7 +2301,7 @@ function App() {
           <div className="modalHead">
             <div>
               <div className="modalTitle">ぬりえテスト</div>
-              <div className="modalSub">「{categoryDisplayTitle(selectedCategory)}」からランダムに出題！何問つづけて正解できるかな？</div>
+              <div className="modalSub">「{categoryDisplayTitle(selectedCategory)}{selectedTagLabel ? `（${selectedTagLabel}）` : ''}」からランダムに出題！何問つづけて正解できるかな？</div>
             </div>
             <button className="btn iconButton quizResultCloseButton" type="button" onClick={() => setChallengeSetupOpen(false)} aria-label="閉じる" title="閉じる">
               <span aria-hidden="true" />
@@ -2748,6 +2771,22 @@ function App() {
         </p>
       )
     }
+    // 国旗のちいきなど、小カテゴリーの中のタグ別に達成度を見られるようにする（小カテゴリーを選んでいるときだけ）
+    const recordFacet = activeChild ? TAG_FACETS[activeChild.id] : undefined
+    const recordTagChips = activeChild && recordFacet
+      ? recordFacet.tags
+        .map((tag) => {
+          const rows = activeChild.rows.filter((row) => ILLUSTRATION_TAGS[row.id] === tag.id)
+          return { tag, rows, doneCount: rows.filter((row) => (isLearn ? row.learned : row.saved)).length }
+        })
+        .filter((entry) => entry.rows.length > 0)
+      : []
+    const recordTagBar = recordTagChips.length >= 2 ? recordTagChips : null
+    const activeRecordTag = recordTagBar && activeChild && recordTag && recordTag.categoryId === activeChild.id ? recordTag.tag : null
+    const activeRecordTagLabel = activeRecordTag ? recordTagBar?.find((entry) => entry.tag.id === activeRecordTag)?.tag.label ?? null : null
+    const shownRows = activeRecordTag ? active.rows.filter((row) => ILLUSTRATION_TAGS[row.id] === activeRecordTag) : active.rows
+    const shownSavedCount = shownRows.filter((row) => row.saved).length
+    const shownLearnedCount = shownRows.filter((row) => row.learned).length
     const total = categories.reduce((sum, category) => sum + category.rows.length, 0)
     const savedTotal = categories.reduce((sum, category) => sum + category.savedCount, 0)
     const learnedTotal = categories.reduce((sum, category) => sum + category.learnedCount, 0)
@@ -2786,12 +2825,23 @@ function App() {
             onChange={(id) => setActiveId(id ?? activeGroup.id)}
           />
         ) : null}
+        {recordTagBar && activeChild ? (
+          <CategoryChips
+            compact
+            className="recordCategoryChips categoryTagChips"
+            ariaLabel={recordFacet?.ariaLabel ?? 'しぼりこむ'}
+            activeId={activeRecordTag}
+            allNote={`${isLearn ? activeChild.learnedCount : activeChild.savedCount}/${activeChild.rows.length}`}
+            items={recordTagBar.map((entry) => ({ id: entry.tag.id, label: entry.tag.label, note: `${entry.doneCount}/${entry.rows.length}` }))}
+            onChange={(id) => setRecordTag(id ? { categoryId: activeChild.id, tag: id } : null)}
+          />
+        ) : null}
         <section className="recordCategory" aria-label={`${active.title}の一覧`}>
           <div className="recordCategoryHead">
-            <h2>{active.title}</h2>
+            <h2>{activeRecordTagLabel ? `${active.title}（${activeRecordTagLabel}）` : active.title}</h2>
             <div className="recordStats">
-              {isLearn ? renderRecordStat('クイズ せいかい', active.learnedCount, active.rows.length, 'learned') : null}
-              {renderRecordStat('ぬった', active.savedCount, active.rows.length, 'saved')}
+              {isLearn ? renderRecordStat('クイズ せいかい', shownLearnedCount, shownRows.length, 'learned') : null}
+              {renderRecordStat('ぬった', shownSavedCount, shownRows.length, 'saved')}
             </div>
           </div>
           {isLearn ? <p className="recordNote">クイズせいかいの下の日づけは、はじめて正解した日です。</p> : null}
@@ -2805,7 +2855,7 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {active.rows.map((row) => (
+                {shownRows.map((row) => (
                   <tr key={row.id}>
                     <th scope="row">
                       <button className="recordTitleButton" type="button" title="このぬりえをひらく" onClick={() => openIllustrationFromRecord(row.id, { quiz: isLearn })}>
@@ -3675,6 +3725,16 @@ function App() {
               activeId={viewingGroupAll ? null : selectedCategoryId}
               items={categoryChipBar.chips.map((chip) => ({ id: chip.id, label: chip.title }))}
               onChange={(id) => chooseCategoryChip(id ?? categoryChipBar.groupId)}
+            />
+          ) : null}
+          {selectedCategory && categoryTagBar ? (
+            <CategoryChips
+              compact
+              className="categoryTagChips"
+              ariaLabel={categoryTagBar.ariaLabel}
+              activeId={selectedTag}
+              items={categoryTagBar.tags.map((tag) => ({ id: tag.id, label: tag.label }))}
+              onChange={(id) => setCategoryTag(id ? { categoryId: selectedCategory.id, tag: id } : null)}
             />
           ) : null}
           {selectedCategory ? (

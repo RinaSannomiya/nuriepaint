@@ -925,6 +925,16 @@ input[type="checkbox"]:checked::after {
   font-size: 13px;
 }
 
+/* 小カテゴリーの中をしぼりこむタグのチップ（国旗のちいき・国際信号旗のしゅるい）。あそぶ／まなぶの一覧では中央のカラム幅にそろえる */
+.categoryChips.categoryTagChips {
+  max-width: 1120px;
+  margin: 0 auto 24px;
+}
+
+.homeCatalog .categoryChips + .categoryChips.categoryTagChips {
+  margin-top: -14px;
+}
+
 .categoryChips.galleryCategoryChips.pageGalleryCategoryPicker {
   margin: -10px 0 26px;
 }

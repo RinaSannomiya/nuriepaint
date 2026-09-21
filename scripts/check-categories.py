@@ -13,6 +13,8 @@
   5. すべてのイラストが、ちょうど1つの小カテゴリーに入っている（0個だとマイギャラリーで「その他」に落ち、2個だと二重に出る）
   6. すべての小カテゴリーが、ちょうど1つの大カテゴリー（CATEGORY_GROUPS）に入っている
   7. カテゴリー名に「・」を使っていない
+  8. すべての国旗にちいき、すべての国際信号旗にしゅるいのタグがある（src/illustrations/illustrationTags.ts。
+     足りなければ python3 scripts/generate-illustration-tags.py で作り直す）
 問題があれば終了コード 1。
 """
 import collections
@@ -187,6 +189,28 @@ for cid in category_ids:
 for cid in group_of:
     if cid not in category_ids:
         errors.append(f'CATEGORY_GROUPS に、存在しない小カテゴリーID {cid} がある')
+
+# 8) タグ（国旗のちいき・国際信号旗のしゅるい）
+tags_src = open('src/illustrations/illustrationTags.ts', encoding='utf-8').read()
+tag_of = dict(re.findall(r"^\s*'([\w-]+)':\s*'([a-z]+)',\s*$", tags_src, re.M))
+facet_ids = {
+    'flags': set(re.findall(r"id:\s*'([a-z]+)'", re.search(r"flags:\s*\{.*?tags:\s*\[(.*?)\]", tags_src, re.S).group(1))),
+    'signal-flags': set(re.findall(r"id:\s*'([a-z]+)'", re.search(r"'signal-flags':\s*\{.*?tags:\s*\[(.*?)\]", tags_src, re.S).group(1))),
+}
+for iid in ids:
+    if iid.startswith('signal-flag-'):
+        kind = 'signal-flags'
+    elif iid.startswith('flag-'):
+        kind = 'flags'
+    else:
+        continue
+    if iid not in tag_of:
+        errors.append(f'{iid} にタグがない（python3 scripts/generate-illustration-tags.py を実行）')
+    elif tag_of[iid] not in facet_ids[kind]:
+        errors.append(f'{iid} のタグ {tag_of[iid]} が {kind} の選択肢にない')
+for iid in tag_of:
+    if iid not in ids:
+        errors.append(f'タグに、存在しないイラストID {iid} がある')
 
 non_empty = sum(1 for v in members.values() if v)
 if '--counts' in sys.argv:
