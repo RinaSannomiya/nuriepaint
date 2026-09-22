@@ -107,6 +107,13 @@ for page, title in re.findall(r"page:\s*'(\d+)',\s*title:\s*'([^']*)'", sig_src)
         if not os.path.exists(f'public/lineart/{d}/signal-{page}.png'):
             errors.append(f'画像がない: public/lineart/{d}/signal-{page}.png')
 
+road_sign_src = open('src/illustrations/roadSignData.ts', encoding='utf-8').read()
+for page, title in re.findall(r"page:\s*'([\w-]+)',\s*title:\s*'([^']*)'", road_sign_src):
+    items.append((f'road-sign-{page}', title))
+    for d in ('road-signs', 'road-signs-colored'):
+        if not os.path.exists(f'public/lineart/{d}/road-sign-{page}.png'):
+            errors.append(f'画像がない: public/lineart/{d}/road-sign-{page}.png')
+
 ids = [i for i, _ in items]
 for iid, n in collections.Counter(ids).items():
     if n > 1:
@@ -124,6 +131,7 @@ PREFIX = {
     'DINOSAUR': 'dinosaur-', 'PLANT': 'plant-', 'FOOD_CATEGORY': 'food-', 'INSECT': 'insect-',
     'TOOL': 'tool-', 'LIVING_THING': 'living-', 'BIRD': 'bird-', 'FISH': 'fish-', 'PATTERN': 'pattern-',
     'FLAG': 'flag-', 'SIGNAL_FLAG': 'signal-flag-',
+    'ROAD_SIGN': 'road-sign-',
 }
 ILL = {}
 for key, prefix in PREFIX.items():

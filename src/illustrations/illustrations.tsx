@@ -1,6 +1,7 @@
 import type { PointerEvent, ReactNode } from 'react'
 import { FLAG_DATA } from './flagData'
 import { SIGNAL_FLAG_DATA } from './signalFlagData'
+import { ROAD_SIGN_DATA } from './roadSignData'
 import { Apple } from './svgs/Apple'
 import { Blueberry } from './svgs/Blueberry'
 import { Grape } from './svgs/Grape'
@@ -149,6 +150,25 @@ const SIGNAL_FLAG_ILLUSTRATIONS: IllustrationDef[] = SIGNAL_FLAG_DATA.map((flag)
       {...props}
       title={flag.title}
       source={`/lineart/signal-flags/signal-${flag.page}.png`}
+      crop={FLAG_RASTER_CROP}
+    />
+  ),
+}))
+
+// 道路標識（警戒標識・規制標識）。線画・見本の大きさ・位置は国旗と同じなので、同じ切り出し範囲を使う
+const ROAD_SIGN_ILLUSTRATIONS: IllustrationDef[] = ROAD_SIGN_DATA.map((sign) => ({
+  id: `road-sign-${sign.page}`,
+  title: sign.title,
+  subtitle: sign.subtitle,
+  thumbnailImage: `/lineart/road-signs/road-sign-${sign.page}.png`,
+  referenceImage: `/lineart/road-signs-colored/road-sign-${sign.page}.png`,
+  raster: true,
+  rasterCrop: FLAG_RASTER_CROP,
+  node: (props) => (
+    <RasterLineArt
+      {...props}
+      title={sign.title}
+      source={`/lineart/road-signs/road-sign-${sign.page}.png`}
       crop={FLAG_RASTER_CROP}
     />
   ),
@@ -541,6 +561,7 @@ export const ILLUSTRATIONS: IllustrationDef[] = [
   ...SNACK_ILLUSTRATIONS,
   ...FLAG_ILLUSTRATIONS,
   ...SIGNAL_FLAG_ILLUSTRATIONS,
+  ...ROAD_SIGN_ILLUSTRATIONS,
   ...CLOTHES_ILLUSTRATIONS,
   ...HOME_THINGS_ILLUSTRATIONS,
   ...VEHICLE_ILLUSTRATIONS,
@@ -694,7 +715,7 @@ export const ILLUSTRATION_CATEGORIES: IllustrationCategory[] = [
   // シンボル（国旗の地域・国際信号旗のしゅるいは、あとで「タグ」でしぼりこむ）
   { id: 'flags', title: '国旗', subtitle: '', illustrationIds: FLAG_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'signal-flags', title: '国際信号旗', subtitle: '', illustrationIds: SIGNAL_FLAG_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'road-signs', title: 'どうろひょうしき', subtitle: '', illustrationIds: [] },
+  { id: 'road-signs', title: 'どうろひょうしき', subtitle: '', illustrationIds: ROAD_SIGN_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'safety-marks', title: 'あんぜんマーク', subtitle: '', illustrationIds: [] },
 
   // きせつ（ぎょうじもここ）
