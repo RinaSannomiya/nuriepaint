@@ -4,6 +4,7 @@ import { DEFAULT_SWATCHES, Palette } from './components/Palette'
 import { IllustrationThumb } from './components/IllustrationThumb'
 import { Sidebar } from './components/Sidebar'
 import { CheckBadge } from './components/CheckBadge'
+import { AchievementBadge, type Achievement } from './components/AchievementBadge'
 import { CategoryDropdown } from './components/CategoryDropdown'
 import { CategoryChips } from './components/CategoryChips'
 import { GroupedLineartView } from './components/GroupedLineartView'
@@ -317,7 +318,7 @@ function App() {
   const [showGalleryPage, setShowGalleryPage] = useState(false)
   const [showSavedPage, setShowSavedPage] = useState(false)
   const [showRecordPage, setShowRecordPage] = useState(false)
-  const [recordTab, setRecordTab] = useState<'learn' | 'play'>('learn')
+  const [recordTab, setRecordTab] = useState<'learn' | 'play' | 'badge'>('learn')
   const [recordLearnCategoryId, setRecordLearnCategoryId] = useState<string | null>(null)
   const [recordPlayCategoryId, setRecordPlayCategoryId] = useState<string | null>(null)
   // 国旗の「ちいき」など、小カテゴリーの中をしぼりこむタグ（categoryId のカテゴリーを見ているときだけ有効）
@@ -710,6 +711,12 @@ function App() {
   )
   const recordLearnGroups = useMemo(() => buildRecordGroups(recordLearnCategories), [recordLearnCategories])
   const recordPlayGroups = useMemo(() => buildRecordGroups(recordPlayCategories), [recordPlayCategories])
+  // バッジ（達成記録）。「はじめて」系は、その行動をとったことがあるかどうかだけを見る
+  const achievements = useMemo(
+    () => buildAchievements(recordPlayGroups, recordLearnCategories, savedIllustrationIds, savedColorings.length > 0, learnedQuizIds.size > 0, uploadedLinearts.length > 0),
+    [learnedQuizIds, recordLearnCategories, recordPlayGroups, savedColorings.length, savedIllustrationIds, uploadedLinearts.length],
+  )
+  const earnedAchievements = useMemo(() => achievements.filter((achievement) => achievement.earned), [achievements])
   const colorModeDescription = {
     rgb: 'RGBは光の三原色。液晶画面の色と同じように、赤・緑・青の光を重ねて色を作ります。',
     cmy: 'CMYは色の三原色。絵の具を混ぜる感覚に近く、シアン・マゼンタ・イエローで色を作ります。',
@@ -2931,6 +2938,36 @@ function App() {
     )
   }
 
+  // 「バッジ」タブ: とくべつ／ぬった数／カテゴリーマスター／クイズはかせ、の4区分で並べる。獲得ずみ・未獲得の両方を出すが、未獲得側に「あと1枚」のような煽り文言は付けない
+  function renderAchievementPanel() {
+    const sections: { tier: Achievement['tier']; heading: string; note: string }[] = [
+      { tier: 'special', heading: 'とくべつ', note: 'はじめての行動でもらえる' },
+      { tier: 'milestone', heading: 'ぬった数', note: '塗った枚数の節目でもらえる' },
+      { tier: 'category', heading: 'カテゴリーマスター（あそぶ）', note: 'そのカテゴリーのぬりえを全部ぬるともらえる' },
+      { tier: 'quiz', heading: 'クイズはかせ（まなぶ）', note: 'そのカテゴリーのクイズに全部せいかいするともらえる' },
+    ]
+    return (
+      <div className="achievementPanel">
+        <p className="recordOverall">
+          ぜんぶで <b>{achievements.length}こ</b>のうち、獲得ずみ <b>{earnedAchievements.length}こ</b>
+        </p>
+        {sections.map((section) => {
+          const items = achievements.filter((achievement) => achievement.tier === section.tier)
+          if (!items.length) return null
+          return (
+            <section className="achievementSection" key={section.tier} aria-label={section.heading}>
+              <h2>{section.heading}</h2>
+              <p className="achievementSectionNote">{section.note}</p>
+              <ul className="achievementGrid">
+                {items.map((achievement) => <AchievementBadge achievement={achievement} key={achievement.id} />)}
+              </ul>
+            </section>
+          )
+        })}
+      </div>
+    )
+  }
+
   const undoDisabled = Boolean(selected && !selectedDef?.raster && (state.undoByIllustration[selected]?.length ?? 0) === 0)
   const redoDisabled = Boolean(selected && !selectedDef?.raster && (state.redoByIllustration[selected]?.length ?? 0) === 0)
   const activeTopPage = selected
@@ -3584,8 +3621,11 @@ function App() {
                     <button className={`recordTab ${recordTab === 'play' ? 'activeRecordTab' : ''}`} type="button" role="tab" aria-selected={recordTab === 'play'} onClick={() => setRecordTab('play')}>
                       あそぶ（ぬりえ）
                     </button>
+                    <button className={`recordTab ${recordTab === 'badge' ? 'activeRecordTab' : ''}`} type="button" role="tab" aria-selected={recordTab === 'badge'} onClick={() => setRecordTab('badge')}>
+                      バッジ
+                    </button>
                   </div>
-                  {renderRecordPanel(recordTab)}
+                  {recordTab === 'badge' ? renderAchievementPanel() : renderRecordPanel(recordTab)}
                 </>
               ) : (
                 <div className="lockedPanel">
@@ -5359,6 +5399,67 @@ function buildRecordGroups(categories: RecordCategory[]): RecordGroup[] {
       children,
     }
   }).filter((group) => group.children.length > 0)
+}
+
+const ACHIEVEMENT_MILESTONE_THRESHOLDS = [5, 10, 30, 50, 100, 200]
+
+// バッジ（達成記録）を作る。DB・APIの変更はなく、既存の「ぬりえの記録」用データからその場で毎回計算する。
+// 「あと1枚でバッジ」のような進捗を煽る見せ方はせず、獲得ずみかどうかだけを見せる方針（ユーザーの指示）。
+function buildAchievements(
+  recordPlayGroups: RecordGroup[],
+  recordLearnCategories: RecordCategory[],
+  savedIllustrationIds: Set<string>,
+  hasSavedColoring: boolean,
+  hasLearnedQuiz: boolean,
+  hasUpload: boolean,
+): Achievement[] {
+  const achievements: Achievement[] = []
+
+  // とくべつ（一回性の行動）
+  achievements.push({ id: 'special-first-coloring', title: 'はじめての1まい', tier: 'special', earned: hasSavedColoring })
+  achievements.push({ id: 'special-first-quiz', title: 'はじめてクイズにせいかい', tier: 'special', earned: hasLearnedQuiz })
+  achievements.push({ id: 'special-first-upload', title: 'はじめてのじぶんのぬりえ', tier: 'special', earned: hasUpload })
+
+  // 累計枚数（あそぶ全体で「ぬった」枚数の節目。存在する枚数を超える節目は出さない）
+  const playTotal = recordPlayGroups.reduce((sum, group) => sum + group.rows.length, 0)
+  const savedTotal = savedIllustrationIds.size
+  for (const threshold of ACHIEVEMENT_MILESTONE_THRESHOLDS) {
+    if (threshold > playTotal) continue
+    achievements.push({ id: `milestone-${threshold}`, title: `${threshold}まい ぬった`, tier: 'milestone', earned: savedTotal >= threshold, count: savedTotal, total: threshold })
+  }
+  if (playTotal > 0) {
+    achievements.push({ id: 'milestone-all', title: 'ぜんぶぬった', tier: 'milestone', earned: savedTotal >= playTotal, count: savedTotal, total: playTotal })
+  }
+
+  // カテゴリーマスター（あそぶの小カテゴリーを全部ぬった）
+  for (const group of recordPlayGroups) {
+    for (const category of group.children) {
+      if (category.rows.length === 0) continue
+      achievements.push({
+        id: `category-${category.id}`,
+        title: `${category.title}マスター`,
+        tier: 'category',
+        earned: category.savedCount === category.rows.length,
+        count: category.savedCount,
+        total: category.rows.length,
+      })
+    }
+  }
+
+  // クイズはかせ（まなぶの小カテゴリーで全問正解）
+  for (const category of recordLearnCategories) {
+    if (category.rows.length === 0) continue
+    achievements.push({
+      id: `quiz-${category.id}`,
+      title: `${category.title}はかせ`,
+      tier: 'quiz',
+      earned: category.learnedCount === category.rows.length,
+      count: category.learnedCount,
+      total: category.rows.length,
+    })
+  }
+
+  return achievements
 }
 
 // チップに出す、小カテゴリーの短い名前（「アジアのもよう」ではなく、大カテゴリーの中で通じる「アジア」）
