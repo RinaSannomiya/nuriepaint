@@ -715,7 +715,7 @@ export const ILLUSTRATION_CATEGORIES: IllustrationCategory[] = [
   // シンボル（国旗の地域・国際信号旗のしゅるいは、あとで「タグ」でしぼりこむ）
   { id: 'flags', title: '国旗', subtitle: '', illustrationIds: FLAG_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'signal-flags', title: '国際信号旗', subtitle: '', illustrationIds: SIGNAL_FLAG_ILLUSTRATIONS.map((it) => it.id) },
-  { id: 'road-signs', title: 'どうろひょうしき', subtitle: '', illustrationIds: ROAD_SIGN_ILLUSTRATIONS.map((it) => it.id) },
+  { id: 'road-signs', title: '道路標識', subtitle: '', illustrationIds: ROAD_SIGN_ILLUSTRATIONS.map((it) => it.id) },
   { id: 'safety-marks', title: 'あんぜんマーク', subtitle: '', illustrationIds: [] },
 
   // きせつ（ぎょうじもここ）

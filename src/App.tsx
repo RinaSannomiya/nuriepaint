@@ -25,6 +25,7 @@ import {
 } from './illustrations/illustrations'
 import { FLAG_QUIZ_DATA } from './illustrations/flagQuizData'
 import { SIGNAL_FLAG_QUIZ_DATA } from './illustrations/signalFlagQuizData'
+import { ROAD_SIGN_QUIZ_DATA } from './illustrations/roadSignQuizData'
 import { FLAG_DIFFICULTY_DATA } from './illustrations/flagDifficultyData'
 import { ILLUSTRATION_TAGS, TAG_FACETS } from './illustrations/illustrationTags'
 import { RasterLineArt, type RasterPaintCommand } from './illustrations/svgs/RasterLineArt'
@@ -214,7 +215,7 @@ const CHALLENGE_DIFFICULTIES: { id: ChallengeDifficulty; label: string }[] = [
   { id: 'hard', label: 'むずかしい' },
 ]
 
-const QUIZ_CATEGORY_IDS = new Set(['flags', 'signal-flags'])
+const QUIZ_CATEGORY_IDS = new Set(['flags', 'signal-flags', 'road-signs'])
 const PROFILE_MOTIFS: ProfileMotif[] = [
   { id: 'boy', label: 'おとこのこ', imageUrl: '/profile-motifs/boy.png' },
   { id: 'girl', label: 'おんなのこ', imageUrl: '/profile-motifs/girl.png' },
@@ -230,6 +231,8 @@ const QUIZ_CONFIGS: Record<string, QuizConfig> = {
   ...FLAG_QUIZ_DATA,
   // 国際信号旗のクイズ用パレットも見本画像から自動生成（scripts/generate-signal-flag-quiz-data.py）
   ...SIGNAL_FLAG_QUIZ_DATA,
+  // 道路標識のクイズ用パレットも見本画像から自動生成（scripts/generate-road-sign-quiz-data.py）
+  ...ROAD_SIGN_QUIZ_DATA,
   'flag-001': {
     passingScore: 88,
     swatches: [
