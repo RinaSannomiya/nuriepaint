@@ -3299,9 +3299,10 @@ function App() {
             <section className="homeHero" aria-labelledby="home-hero-copy">
               <div className="heroText">
                 <p className="heroCatch">
-                  好きな色をのせていくだけ。<br />
-                  ぬりえを通じて育む<br className="heroCatchNarrowBreak" />
-                  想像力と学び。
+                  好きな色を<br />
+                  のせていくだけ。<br />
+                  ぬりえを通じて育む<br />
+                  <span className="heroCatchAccent">想像力と学び。</span>
                 </p>
                 <p className="heroLead" id="home-hero-copy">
                   ぬりえペイントは、ぬりえの「めんどくささ」を解消して、<br />
@@ -3313,7 +3314,7 @@ function App() {
               </div>
               <div className="lpVisual heroArtwork" aria-label="ぬりえ作品のイメージ">
                 <img className="heroObject heroObjectButterfly" src="/lp/hero-butterfly-line.png" alt="" />
-                <img className="heroObject heroObjectApple" src="/lp/hero-apple-white.png" alt="" />
+                <img className="heroObject heroObjectApple" src="/lp/hero-apple.png" alt="" />
                 <img className="heroObject heroObjectAirplane" src="/lp/hero-airplane-line.png" alt="" />
               </div>
             </section>
@@ -3639,16 +3640,11 @@ function App() {
               <section className="lpMain" aria-label="主な特徴">
                 <div className="lpFeatureGrid" aria-label="主な特徴">
                   <section className="lpFeature lpFeatureSave">
-                    <div className="lpFeatureArtwork lpSaveArtwork" aria-hidden="true">
-                      <div className="lpMiniPaper">
-                        {lpPreviewIllustrations[1] ? <IllustrationThumb illustration={lpPreviewIllustrations[1]} /> : null}
-                      </div>
-                    </div>
-                    <h2>
-                      ワンタッチの<br />
-                      塗りつぶしぬりえ
-                    </h2>
                     <div className="lpFeatureCopy">
+                      <h2>
+                        ワンタッチの<br />
+                        塗りつぶしぬりえ
+                      </h2>
                       <p>
                         「クレヨンだと周りのものを汚してしまう…」<br />
                         「色鉛筆で広い面を塗るのは大変…」<br />
@@ -3658,23 +3654,25 @@ function App() {
                         ぬりえをはじめる
                       </button>
                     </div>
-                  </section>
-                  <section className="lpFeature lpFeatureColor">
-                    <div className="lpFeatureArtwork lpColorArtwork" aria-hidden="true">
-                      <div className="lpColorMixer">
-                        <i style={{ background: '#ef6950' }} />
-                        <i style={{ background: '#feb61c' }} />
-                        <i style={{ background: '#29a2de' }} />
-                        <div><b style={{ width: '78%', background: '#ef6950' }} /></div>
-                        <div><b style={{ width: '55%', background: '#1cb5a5' }} /></div>
-                        <div><b style={{ width: '68%', background: '#29a2de' }} /></div>
+                    <div className="lpFeatureArtwork lpSaveArtwork" aria-hidden="true">
+                      <div className="lpFrame lpSaveFrame">
+                        <div className="lpMiniPaper">
+                          {lpPreviewIllustrations[1] ? <IllustrationThumb illustration={lpPreviewIllustrations[1]} /> : null}
+                        </div>
+                        <div className="lpSaveDots">
+                          <i style={{ background: '#ef6950' }} />
+                          <i style={{ background: '#feb61c' }} />
+                          <i style={{ background: '#29a2de' }} />
+                        </div>
                       </div>
                     </div>
-                    <h2>
-                      色の混ぜ方を<br />
-                      さわって学べる
-                    </h2>
+                  </section>
+                  <section className="lpFeature lpFeatureColor">
                     <div className="lpFeatureCopy">
+                      <h2>
+                        色の混ぜ方を<br />
+                        さわって学べる
+                      </h2>
                       <p>
                         カラーパレットに加えて、RGB、CMY、HSVのスライダーで自分だけの色を作れます。<br />
                         カラーパレットをオフにして、スライダーの混色だけでぬりえを楽しむこともできます。
@@ -3683,18 +3681,43 @@ function App() {
                         色の調節設定を確認する
                       </button>
                     </div>
+                    <div className="lpFeatureArtwork lpColorArtwork" aria-hidden="true">
+                      <div className="lpColorMixer">
+                        {[['R', '78%', '#ef6950'], ['G', '55%', '#1cb5a5'], ['B', '68%', '#29a2de']].map(([label, width, color]) => (
+                          <div className="lpSliderRow" key={label}>
+                            <span>{label}</span>
+                            <div className="lpSliderTrack"><b style={{ width, background: color }} /><em style={{ left: width, background: color }} /></div>
+                          </div>
+                        ))}
+                        <div className="lpModeTabs"><strong>RGB</strong><span>CMY</span><span>HSV</span></div>
+                      </div>
+                      <div className="lpColorApple">
+                        <img src="/lp/hero-apple-line.png" alt="" />
+                      </div>
+                    </div>
                   </section>
                   <section className="lpFeature lpFeatureLearn">
                     <div className="lpFeatureArtwork lpLearnArtwork" aria-hidden="true">
-                      <div className="lpMiniPaper">
-                        {lpPreviewIllustrations[2] ? <IllustrationThumb illustration={lpPreviewIllustrations[2]} /> : null}
+                      <div className="lpCardStack">
+                        <div className="lpCardSheet lpCardSheetLeft">
+                          <div className="lpMiniPaper">
+                            {lpPreviewIllustrations[2] ? <IllustrationThumb illustration={lpPreviewIllustrations[2]} /> : null}
+                          </div>
+                          <hr /><hr />
+                        </div>
+                        <div className="lpCardSheet lpCardSheetRight">
+                          <div className="lpMiniPaper">
+                            {lpPreviewIllustrations[1] ? <IllustrationThumb illustration={lpPreviewIllustrations[1]} /> : null}
+                          </div>
+                          <hr /><hr />
+                        </div>
                       </div>
                     </div>
-                    <h2>
-                      ぬりえを通じて<br />
-                      知識が身に付く
-                    </h2>
                     <div className="lpFeatureCopy">
+                      <h2>
+                        ぬりえを通じて<br />
+                        知識が身に付く
+                      </h2>
                       <p>国旗や生き物の模様など、決まった配色がある題材は、ぬりえクイズとしてたのしむこともできます。</p>
                       <button className="btn lpFeatureButton lpFeatureButtonGreen" type="button" onClick={openQuizCatalog}>
                         ぬりえでまなぶ

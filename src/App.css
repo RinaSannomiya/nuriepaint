@@ -7440,3 +7440,435 @@ input[type="checkbox"]:checked::after {
     grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   }
 }
+
+/* ===== トップページ (LP) リニューアル ===== */
+.homeHero {
+  min-height: 460px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  padding: 48px 50px 64px;
+}
+
+.heroCatch {
+  color: #1d1d1f;
+  font-size: clamp(32px, 4vw, 50px);
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  margin-bottom: 18px;
+}
+
+.heroCatchAccent {
+  color: #ef6950;
+}
+
+.heroLead {
+  font-size: clamp(14px, 1.2vw, 16px);
+  line-height: 1.9;
+}
+
+.heroPrimaryAction {
+  background: var(--accent-green);
+  color: #fff;
+}
+
+.heroObjectButterfly {
+  left: -40px;
+  top: 0;
+  width: clamp(200px, 20vw, 270px);
+  transform: rotate(-4deg);
+}
+
+.heroObjectApple {
+  left: 56%;
+  top: 110px;
+  width: clamp(210px, 21vw, 290px);
+  transform: translateX(-50%);
+  filter: none;
+}
+
+.heroObjectAirplane {
+  right: 0;
+  top: 10px;
+  width: clamp(130px, 13vw, 180px);
+  transform: none;
+}
+
+.lpMain {
+  padding-top: 24px;
+}
+
+.lpFeatureGrid {
+  gap: 48px;
+}
+
+.lpFeature {
+  border: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  padding: 0;
+}
+
+.lpFeature:last-child {
+  border: 0;
+}
+
+.lpFeature h2 {
+  margin-bottom: 14px;
+}
+
+.lpFeature p {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.lpFeatureCopy {
+  gap: 0;
+}
+
+.lpFeatureButton {
+  width: auto;
+  min-width: 220px;
+  min-height: 46px;
+  margin-top: 22px;
+  justify-self: start;
+  font-size: 14px;
+}
+
+.lpFeatureArtwork {
+  min-height: 0;
+}
+
+.lpFrame,
+.lpFeatureColor,
+.lpCardSheet {
+  border: 2px solid #1d1d1f;
+}
+
+.lpSaveFrame {
+  width: 100%;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 28px;
+}
+
+.lpSaveFrame .lpMiniPaper,
+.lpSaveArtwork .lpMiniPaper {
+  width: 100%;
+  height: 150px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+
+.lpSaveDots {
+  display: grid;
+  gap: 16px;
+  padding-left: 22px;
+  border-left: 2px solid #1d1d1f;
+}
+
+.lpSaveDots i {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid #1d1d1f;
+}
+
+/* 2つめ: 枠で囲ったワイドなブロック */
+.lpFeatureColor {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 32px;
+  padding: 36px 32px;
+  margin-inline: -24px;
+}
+
+.lpColorArtwork {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+
+.lpColorMixer {
+  width: auto;
+  min-height: 0;
+  background: transparent;
+  padding: 0 24px 0 0;
+  border-radius: 0;
+  border-right: 2px solid #1d1d1f;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.lpSliderRow {
+  grid-column: auto;
+  height: auto;
+  background: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: visible;
+}
+
+.lpSliderRow > span {
+  width: 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lpSliderTrack {
+  position: relative;
+  flex: 1;
+  height: 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid #1d1d1f;
+  overflow: visible;
+}
+
+.lpSliderTrack b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.lpSliderTrack em {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #1d1d1f;
+  transform: translate(-50%, -50%);
+}
+
+.lpModeTabs {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lpModeTabs strong {
+  background: #fed351;
+  border: 2px solid #1d1d1f;
+  padding: 4px 10px;
+}
+
+.lpColorApple img {
+  display: block;
+  width: 120px;
+  height: auto;
+}
+
+.lpCardStack {
+  position: relative;
+  height: 250px;
+}
+
+.lpCardSheet {
+  position: absolute;
+  width: 46%;
+  background: #fff;
+  padding: 14px;
+}
+
+.lpCardSheet .lpMiniPaper {
+  width: 100%;
+  height: 110px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.lpCardSheet hr {
+  margin: 10px 0 0;
+  border: 0;
+  border-top: 2px solid #1d1d1f;
+}
+
+.lpCardSheetLeft {
+  left: 2%;
+  top: 14px;
+  transform: rotate(-4deg);
+}
+
+.lpCardSheetRight {
+  right: 2%;
+  top: 0;
+  transform: rotate(4deg);
+}
+
+/* アカウント作成セクション */
+.lpAccountSection {
+  background: #fff;
+  border-top: 2px solid #1d1d1f;
+  border-bottom: 2px solid #1d1d1f;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 40px 50px 44px;
+}
+
+.lpAccountIntro h2 {
+  color: #1d1d1f;
+  font-size: clamp(18px, 1.8vw, 22px);
+}
+
+.lpAccountBenefitGrid {
+  gap: 0;
+}
+
+.lpAccountBenefitCard {
+  clip-path: none;
+  border-radius: 0;
+  padding: 8px 24px;
+  text-align: center;
+  gap: 10px;
+}
+
+.lpAccountBenefitCard + .lpAccountBenefitCard {
+  border-left: 2px solid #1d1d1f;
+}
+
+.lpAccountBenefitArtwork {
+  min-height: 70px;
+}
+
+.lpAccountBenefitArtwork .lpMiniPaper,
+.lpInstallArtwork {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  padding: 6px;
+  background: transparent;
+}
+
+.lpInstallArtwork i {
+  border-radius: 12px;
+  border: 2px solid #1d1d1f;
+  background: #fff !important;
+}
+
+.lpInstallArtwork i:nth-child(1) { width: 38px; height: 38px; left: 2px; top: 4px; }
+.lpInstallArtwork i:nth-child(2) { width: 38px; height: 38px; right: 2px; bottom: 4px; }
+.lpInstallArtwork i:nth-child(3) { display: none; }
+
+.lpAccountBenefitCard h3 {
+  font-size: 16px;
+}
+
+.lpAccountBenefitCard p {
+  font-size: 13px;
+}
+
+.lpAccountCreateButton {
+  width: auto;
+  min-width: 220px;
+  min-height: 46px;
+  margin-top: 24px;
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .homeHero {
+    grid-template-columns: 1fr;
+    padding: 28px 24px 40px;
+  }
+
+  .heroCatch {
+    font-size: 32px;
+  }
+
+  .heroObjectButterfly { left: 0; width: 44%; }
+  .heroObjectApple { left: 62%; top: 70px; width: 46%; }
+  .heroObjectAirplane { width: 30%; top: 0; }
+
+  .lpFeature,
+  .lpFeatureColor {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-inline: 0;
+    padding-inline: 20px;
+  }
+
+  .lpFeature {
+    padding-inline: 0;
+  }
+
+  .lpFeatureColor {
+    padding: 28px 20px;
+  }
+
+  .lpFeatureLearn .lpFeatureArtwork {
+    order: 2;
+  }
+
+  .lpFeatureButton {
+    justify-self: center;
+  }
+
+  .lpColorArtwork {
+    grid-template-columns: 1fr;
+  }
+
+  .lpColorApple {
+    display: none;
+  }
+
+  .lpAccountSection {
+    padding: 32px 24px;
+  }
+
+  .lpAccountBenefitGrid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .lpAccountBenefitCard + .lpAccountBenefitCard {
+    border-left: 0;
+    border-top: 2px solid #1d1d1f;
+    padding-top: 20px;
+  }
+}
+
+.lpSaveFrame .lpMiniPaper,
+.lpCardSheet .lpMiniPaper {
+  overflow: hidden;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.lpSaveFrame .lpMiniPaper > *,
+.lpCardSheet .lpMiniPaper > * {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+@media (min-width: 761px) {
+  .heroPrimaryAction {
+    margin-inline: 0;
+    display: inline-flex;
+  }
+}
+
+.lpLearnArtwork {
+  display: block;
+}
+
+.lpCardStack {
+  width: 100%;
+}
+
+.lpLearnArtwork .lpCardSheet .lpMiniPaper {
+  width: 100%;
+  height: 110px;
+}
